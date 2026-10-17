@@ -41,15 +41,21 @@ Returns `{ "cards": [...], "source": "gemma" }`. The server requests structured 
 
 - **ElevenLabs:** real narration was successfully tested on the owner's local configuration. Partner clones require their own authorized settings. Do not assume the owner's key is included.
 - **Gemma:** adapter implemented; live provider configuration and real lesson generation still need verification.
-- **Images:** emoji placeholders only. Planned provider is Google Nano Banana 2; no image API route, key, generation, or persistent assets exist yet. Start by adding a server-side adapter and wiring the resulting images into both library cards and flipped reading cards.
+- **Images:** Nano Banana 2 adapter and both card views are implemented. Set `GEMINI_API_KEY` locally for a live test. `images.py` persists files under ignored `.wordring/images/`; browser cards store an optional `imageUrl`. Tests mock Google; live image generation remains to be verified.
 
 ## Next milestones
 
 1. Confirm chosen narration voice on short words and sentences; review pronunciation with the team.
 2. Connect the team's Gemma endpoint and verify grade-appropriate responses against the schema.
-3. Integrate illustration generation with saved/cached output so card navigation never generates a fresh image.
+3. Configure the Google image key, run a real illustration, and review content and visual quality.
 4. Review sample content for beginning readers and assemble a short end-to-end demo.
 
 ## Known constraints
 
 The Python server is for local development. Do not expose it publicly as a production service. There is no authentication, rate limiting, user isolation, or durable backend storage. Audio tests mock the provider; they verify behavior, not pronunciation quality. Instructional content and letter sounds need human review before use with children. Fonts load from Google Fonts; system font fallbacks work without that connection.
+
+### POST /api/image
+
+Request: `{ "word": "cat", "imagePrompt": "A friendly cat" }`. Word: 1–100 characters; optional imagePrompt: at most 600 characters. Returns `{ "imageUrl": "/generated/<sha256>.png", "model": "gemini-3.1-flash-image", "cached": false }` (extension can also be jpg/webp). Uses the Gemini generateContent endpoint, IMAGE/TEXT response modalities, 1:1 aspect ratio, and 1K size. No generation runs during navigation.
+
+A content hash of the model and full prompt keys the disk cache. Requests are serialized to avoid duplicate concurrent generation. Files are saved atomically; only validated image formats are accepted. `/generated/` serves only hash-based filenames and never arbitrary paths. Missing key: 503; malformed request: 400; provider/no-image errors: 502 with a user-actionable message and no credentials. `GET /api/status` also returns `imageGeneration`, indicating key presence rather than provider health. Missing local image files fall back to a placeholder and allow regeneration.

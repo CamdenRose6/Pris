@@ -19,6 +19,7 @@ On Windows, use `py -3 server.py` if `python3` is unavailable. Open **http://127
 ## What works today
 
 - Default **Read words** tab with one word at a time, card flipping, previous/next controls, and position indicator.
+- Nano Banana 2 illustration generation on each card, with a persistent local image cache.
 - Whole-word and sentence narration, voice selection, and a slower reading option.
 - ElevenLabs natural speech, with a browser-voice fallback and a server-memory cache of up to 50 clips.
 - Manual word entry, folders, and word/picture/combined library views.
@@ -34,6 +35,7 @@ Copy `.env.example` to `.env` in the project root (`cp .env.example .env` on mac
 | --- | --- |
 | `ELEVENLABS_API_KEY` | Your ElevenLabs key with Text to Speech access |
 | `ELEVENLABS_VOICE_ID` | ID of a voice your account can use through the API |
+| `GEMINI_API_KEY` | Google AI Studio key with Nano Banana 2 access |
 | `GEMMA_API_URL` | Full OpenAI-compatible chat completions URL for your Gemma provider |
 | `GEMMA_API_KEY` | Key for that provider |
 | `GEMMA_MODEL` | Exact Gemma model ID from that provider |
@@ -58,7 +60,8 @@ Gemma is intended to generate grade-level vocabulary, definitions, example sente
 public/index.html       App layout and dialogs
 public/style.css        Responsive styles
 public/app.js           Cards, reading flow, quizzes, local saving, audio playback
-server.py               Local HTTP server and server-side AI adapters
+server.py               Local HTTP server and server-side AI routes
+images.py               Nano Banana 2 adapter and persistent image cache
 .env.example            Configuration template without secrets
 tests/                  Python tests; provider calls are mocked
 .github/workflows/      Automated Python tests and JavaScript syntax checks
@@ -88,4 +91,16 @@ Python tests make no real provider calls and require no keys. GitHub Actions run
 
 ## Still to build
 
-Image generation is not connected; pictures are labeled emoji placeholders. Nano Banana 2 is the planned image provider. Letter/phoneme audio, speech scoring, accounts, cloud sync, and deployment are not implemented. This is a local development server, not a production server; keep it bound to localhost.
+Nano Banana 2 is implemented; live generation requires a Google image API key. Cards without generated pictures show labeled emoji placeholders. Letter/phoneme audio, speech scoring, accounts, cloud sync, and deployment are not implemented. This is a local development server, not a production server; keep it bound to localhost.
+
+## Nano Banana 2 pictures
+
+1. Create a Gemini API key in [Google AI Studio](https://aistudio.google.com/apikey) with access to image generation and any required billing/quota.
+2. Put `GEMINI_API_KEY=your-key` in your local `.env` and restart WordRing.
+3. Click **Create picture** beneath the reading card or on a library card. Flip the reading card to see the illustration.
+
+The server calls `gemini-3.1-flash-image` through Google's `generateContent` API, requesting a square 1K illustration with a shared storybook style. Only the word and illustration prompt are sent. Generation may incur charges. It happens only on an explicit button click; navigating or flipping cards does not trigger paid calls.
+
+Images are saved to ignored `.wordring/images/` files; the card stores only a local URL. Identical prompts reuse saved pictures, including after a restart. Image files and credentials are not in Git. Partners can generate their own pictures. Back up `.wordring/images/` separately if you want to keep local artwork. If files are removed, the card lets you create the picture again. Review generated pictures for accuracy before using them with children.
+
+The adapter is covered by mocked tests. A live image test still needs the local Google key; passing tests does not establish model access or image quality.

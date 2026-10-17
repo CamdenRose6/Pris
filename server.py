@@ -3,6 +3,7 @@ import json, os, urllib.request, urllib.error, urllib.parse, threading
 from collections import OrderedDict
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
+import images
 
 ROOT = Path(__file__).parent / 'public'
 
@@ -12,7 +13,7 @@ def load_local_settings():
     if not settings.exists():
         return
     allowed = {'GEMMA_API_URL', 'GEMMA_API_KEY', 'GEMMA_MODEL',
-               'ELEVENLABS_API_KEY', 'ELEVENLABS_VOICE_ID'}
+               'ELEVENLABS_API_KEY', 'ELEVENLABS_VOICE_ID', 'GEMINI_API_KEY'}
     for line in settings.read_text().splitlines():
         line = line.strip()
         if not line or line.startswith('#') or '=' not in line:
@@ -57,10 +58,38 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == '/api/status':
-            return self.reply(200, {'gemma': all(os.getenv(k) for k in ('GEMMA_API_URL','GEMMA_API_KEY','GEMMA_MODEL')), 'naturalSpeech': speech_configured()})
+            return self.reply(200, {'gemma': all(os.getenv(k) for k in ('GEMMA_API_URL','GEMMA_API_KEY','GEMMA_MODEL')), 'naturalSpeech': speech_configured(), 'imageGeneration': images.configured()})
+        if self.path.startswith('/generated/'):
+            filename = self.path.removeprefix('/generated/')
+            if not images.FILE_PATTERN.fullmatch(filename):
+                return self.reply(404, {'error': 'Picture not found.'})
+            try:
+                raw = (images.CACHE / filename).read_bytes()
+            except FileNotFoundError:
+                return self.reply(404, {'error': 'Picture not found on this computer. Create it again.'})
+            self.send_response(200)
+            self.send_header('Content-Type', {'png':'image/png','jpg':'image/jpeg','webp':'image/webp'}[filename.rsplit('.',1)[1]])
+            self.send_header('Content-Length', str(len(raw)))
+            self.send_header('Cache-Control', 'private, max-age=31536000, immutable')
+            self.send_header('X-Content-Type-Options', 'nosniff')
+            self.end_headers()
+            self.wfile.write(raw)
+            return
         super().do_GET()
 
     def do_POST(self):
+        if self.path == '/api/image':
+            try:
+                size = int(self.headers.get('Content-Length', 0))
+                if not 0 < size <= 4000:
+                    return self.reply(400, {'error': 'Invalid image request.'})
+                return self.reply(200, images.generate(json.loads(self.rfile.read(size))))
+            except images.ImageError as error:
+                return self.reply(error.status, {'error': str(error)})
+            except (ValueError, TypeError):
+                return self.reply(400, {'error': 'Invalid image request.'})
+            except Exception:
+                return self.reply(502, {'error': 'Could not create or save the picture. Please try again.'})
         if self.path == '/api/speech':
             return self.create_speech()
         if self.path != '/api/lesson':
