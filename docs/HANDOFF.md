@@ -69,3 +69,11 @@ Settings is a fourth navigation section. `voiceSelect` and `speechSpeed` are loc
 `public/image-review.js` provides the tested approval lifecycle. New responses populate `pendingImageUrl` and `pendingImageModel`. Only `imageApproved === true` with a valid local generated-image URL is displayed. Approval promotes pending metadata to `imageUrl`/`imageModel` and clears pending fields. Discard clears pending metadata; cached files remain. Existing generated images lacking explicit approval migrate to pending once; sample emoji clues remain available. The dialog requires the preview to load before approval is enabled. Closing a dialog preserves pending review. This is local state, not an authenticated child/parent role boundary.
 
 Run `node --test tests/test_image_review.cjs` for approval, discard, persisted-state migration, and invalid-URL coverage. GitHub Actions includes these checks.
+
+## Clickable letter sounds
+
+`readingCard` is now a noninteractive group; `flipCard` exclusively controls support visibility. `readingWord` always remains visible, with an accessible button for each alphabetic character. In known words, each button refers to an explicit grapheme group from `public/phonics.js`; shared letters play/highlight as one sound, and silent letters are explained. Unknown words expose letter-name buttons with explicit UI messaging.
+
+`POST /api/speech` accepts optional `sound`, an allowlisted ID from `phonics.py`. It constructs server-owned SSML and selects `eleven_flash_v2` (the ordinary multilingual model does not support these phoneme tags). Raw client SSML is not accepted through sound IDs. The existing cache is keyed by voice, model, text, and speed, so phonics clips cannot collide with whole words. UI speech cancellation and request IDs also cover letter clicks. Phoneme audio has been verified to return MP3 from the live provider; model success does not prove educational accuracy.
+
+Run `node --test tests/*.cjs` for spellings, group alignment, silent letters, irregular vowels, fallback behavior, and approval tests. Keep frontend sound IDs and the Python allowlist in sync when extending phonics.

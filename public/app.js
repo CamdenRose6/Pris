@@ -50,6 +50,7 @@ function stopSpeech(){
  if(playingAudio){playingAudio.pause();playingAudio=null;}
  if(audioURL){URL.revokeObjectURL(audioURL);audioURL=null;}
  if('speechSynthesis' in window)speechSynthesis.cancel();
+ document.querySelectorAll('.letter-button.is-speaking').forEach(button=>button.classList.remove('is-speaking'));
  $('readAloud').classList.remove('speaking');$('readAloud').removeAttribute('aria-busy');
 }
 function voiceScore(voice){
@@ -81,17 +82,19 @@ function speakOnDevice(text, request){
  if(voice){u.voice=voice;u.lang=voice.lang;}else u.lang='en-US';
  u.rate=($('speechSpeed').value==='slow')?.8:.95;u.pitch=1;u.volume=1;
  u.onstart=()=>{if(request===speechRequest)updateVoiceStatus('Reading…');};
- u.onend=()=>{if(request===speechRequest){$('readAloud').classList.remove('speaking');updateVoiceStatus();}};
+ u.onend=()=>{if(request===speechRequest){$('readAloud').classList.remove('speaking');document.querySelectorAll('.letter-button.is-speaking').forEach(button=>button.classList.remove('is-speaking'));updateVoiceStatus();}};
  u.onerror=event=>{if(request===speechRequest&&event.error!=='interrupted'&&event.error!=='canceled'){updateVoiceStatus('Audio could not play. Try another reading voice.');$('readAloud').classList.remove('speaking');}};
  $('readAloud').classList.add('speaking');speechSynthesis.speak(u);
 }
-async function speak(text){
+async function speak(text, options={}){
  stopSpeech();const request=speechRequest;
- if(!naturalSpeech||$('voiceSelect').value!=='auto'){speakOnDevice(text,request);return;}
+ if(options.buttons)options.buttons.forEach(button=>button.classList.add('is-speaking'));
+ const fallback=()=>{if(options.sound)$('letterFeedback').textContent='Letter name: '+text+'. Sound audio is unavailable right now.';speakOnDevice(text,request);};
+ if(!naturalSpeech||(!options.sound&&$('voiceSelect').value!=='auto')){fallback();return;}
  const controller=new AbortController();speechController=controller;$('readAloud').setAttribute('aria-busy','true');updateVoiceStatus('Getting your reading voice ready…');
  const timeout=setTimeout(()=>controller.abort(),35000);
  try{
-  const response=await fetch('/api/speech',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,slow:($('speechSpeed').value==='slow')}),signal:controller.signal});
+  const response=await fetch('/api/speech',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,slow:($('speechSpeed').value==='slow'),...(options.sound?{sound:options.sound}:{})}),signal:controller.signal});
   if(!response.ok)throw Error('Speech unavailable');
   const blob=await response.blob();if(request!==speechRequest)return;
   audioURL=URL.createObjectURL(blob);playingAudio=new Audio(audioURL);
@@ -99,7 +102,7 @@ async function speak(text){
   playingAudio.onerror=()=>{if(request===speechRequest){stopSpeech();updateVoiceStatus('Audio could not play. Please try again.');}};
   await playingAudio.play();if(request!==speechRequest)return;
   $('readAloud').classList.add('speaking');updateVoiceStatus('Reading…');
- }catch(error){if(request!==speechRequest)return;updateVoiceStatus('Natural voice unavailable. Using your device voice.');toast('Using your device voice for now.');speakOnDevice(text,request);}
+ }catch(error){if(request!==speechRequest)return;updateVoiceStatus('Natural voice unavailable. Using your device voice.');toast(options.sound?'Sound audio is unavailable. Playing the letter name.':'Using your device voice for now.');fallback();}
  finally{clearTimeout(timeout);if(request===speechRequest){speechController=null;$('readAloud').removeAttribute('aria-busy');}}
 }
 $('voiceSelect').onchange=()=>{stopSpeech();voicePreference=$('voiceSelect').value;try{localStorage.setItem('wordring-voice',voicePreference);}catch{}updateVoiceStatus();};
@@ -144,6 +147,7 @@ function renderReading(){
  $('readingFolder').textContent=activeFolder||'All words';
  $('readingEmpty').hidden=!!card;
  $('readingCard').hidden=!card;
+ $('flipCard').disabled=!card;
  $('readAloud').disabled=!card;$('readSentence').hidden=!card?.sentence;
  $('previousWord').disabled=!card||readingIndex===0;
  $('nextWord').disabled=!card||readingIndex===cards.length-1;
@@ -151,19 +155,19 @@ function renderReading(){
  $('readingProgress').max=cards.length||1;$('readingProgress').value=card?readingIndex+1:0;
  updateImageControls();
  if(!card)return;
- $('readingWord').textContent=card.word;
- $('readingWord').hidden=readingFlipped;
+ renderLetters(card);
+ $('readingWord').hidden=false;
+ $('flipCard').disabled=false;
  $('readingSupport').hidden=!readingFlipped;
  $('readingSupport').replaceChildren();
  if(readingFlipped){
   if(cardImageURL(card)){const img=document.createElement('img');img.className='reading-illustration';img.src=cardImageURL(card);img.alt=card.word+' illustration';img.onerror=()=>markMissingPicture(card,img);$('readingSupport').append(img);}
   else if(card.emoji){const picture=document.createElement('span');picture.className='reading-picture';picture.textContent=card.emoji;picture.setAttribute('aria-label',card.word+' illustration');$('readingSupport').append(picture);}
-  const word=document.createElement('strong');word.textContent=card.word;$('readingSupport').append(word);
   const sentence=document.createElement('span');sentence.textContent=card.sentence||'Listen to the word, then try reading it again.';$('readingSupport').append(sentence);
  }
- $('cardCue').textContent=readingFlipped?'LOOK, LISTEN, AND TRY AGAIN':'TRY READING THIS WORD';
- $('flipCue').textContent=readingFlipped?'Tap to return to the word ↻':'Tap to see a clue ↻';
- $('readingCard').setAttribute('aria-label',readingFlipped?'Show word side':'Show a clue for '+card.word);
+ $('cardCue').textContent='TAP THE LETTERS. THEN READ THE WORD.';
+ $('flipCard').textContent=readingFlipped?'Hide picture clue ↻':'Show picture clue ↻';
+ $('flipCard').setAttribute('aria-expanded',String(readingFlipped));
 }
 function moveWord(direction){readingIndex+=direction;readingFlipped=false;stopSpeech();updateVoiceStatus();renderReading();}
 $('readingNav').onclick=showReading;
@@ -171,14 +175,14 @@ $('readingManage').onclick=showLibrary;
 $('settingsNav').onclick=()=>{setTab('settings');updateVoiceStatus();updateImageControls();};
 $('managePictures').onclick=showLibrary;
 $('previewVoice').onclick=()=>speak('Let’s read together. One word at a time.');
-$('readingCard').onclick=()=>{readingFlipped=!readingFlipped;renderReading();};
+$('flipCard').onclick=()=>{stopSpeech();readingFlipped=!readingFlipped;renderReading();};
 $('readAloud').onclick=()=>{const card=currentCards()[readingIndex];if(card)speak(card.word);};
 $('previousWord').onclick=()=>moveWord(-1);$('nextWord').onclick=()=>moveWord(1);
 $('back').onclick=showReading;
 window.addEventListener('keydown',event=>{
  if(activeTab!=='reading'||$('createDialog').open||$('imageReviewDialog').open||/INPUT|TEXTAREA|SELECT|BUTTON/.test(document.activeElement.tagName)||event.ctrlKey||event.metaKey||event.altKey)return;
  if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();moveWord(event.key==='ArrowLeft'?-1:1);}
- if(event.code==='Space'&&currentCards().length){event.preventDefault();$('readingCard').click();}
+ if(event.code==='Space'&&currentCards().length){event.preventDefault();$('flipCard').click();}
 });
 
 $('readSentence').onclick=()=>{const card=currentCards()[readingIndex];if(card?.sentence)speak(card.sentence);};
@@ -233,3 +237,25 @@ $('discardPicture').onclick=()=>{
  const card=state.cards.find(c=>c.id===reviewingCardId);if(card){WordRingImages.discard(card);save();}
  $('imageReviewDialog').close();refreshAfterReview();toast('The AI picture was not added to the reading card.');
 };
+
+function renderLetters(card){
+ const word=$('readingWord');word.replaceChildren();
+ word.classList.toggle('long-word',card.word.length>5);word.style.setProperty('--letter-count',Math.max(1,card.word.length));
+ word.setAttribute('aria-label',`Letters in ${card.word}`);
+ const known=!!WordRingPhonics.segments(card.word);
+ $('letterFeedback').textContent=known?'Tap a letter to hear its sound.':'Tap letters to hear their names. Use Hear the word for pronunciation.';
+ for(const part of WordRingPhonics.letters(card.word)){
+  if(!/[a-z]/i.test(part.letter)){const span=document.createElement('span');span.textContent=part.letter;word.append(span);continue;}
+  const button=document.createElement('button');button.type='button';button.className='letter-button';button.textContent=part.letter;button.dataset.group=part.group;
+  const shared=part.letters.length>1;
+  button.setAttribute('aria-label',part.sound?`Hear ${part.letters}${shared?' together':''} sound, letter ${part.letter}`:`Hear letter ${part.letter} name`);
+  if(shared)button.classList.add('shared-sound');
+  button.onclick=()=>{
+   if(part.sound==='silent'){stopSpeech();$('letterFeedback').textContent=`The ${part.letters} is silent in ${card.word}.`;return;}
+   const buttons=[...word.querySelectorAll('.letter-button')].filter(el=>el.dataset.group===String(part.group));
+   $('letterFeedback').textContent=part.sound?`${part.letters}${shared?' together':''}: /${WordRingPhonics.sounds[part.sound][1]}/`:`Letter name: ${part.letter}`;
+   speak(part.letter,{sound:part.sound,buttons});
+  };
+  word.append(button);
+ }
+}

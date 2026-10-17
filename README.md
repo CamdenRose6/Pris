@@ -18,7 +18,7 @@ On Windows, use `py -3 server.py` if `python3` is unavailable. Open **http://127
 
 ## What works today
 
-- Default **Read words** tab with one word at a time, card flipping, previous/next controls, and position indicator.
+- Default **Read words** tab with one word at a time, a separate picture-clue button, previous/next controls, and position indicator.
 - Cloudflare FLUX.1 Schnell illustration generation on each card (optional paid Nano Banana 2 provider), with a persistent local image cache.
 - Whole-word and sentence narration. Settings holds voice selection, normal/slower speed, and a voice preview.
 - AI image previews with explicit approval before pictures appear in either card view.
@@ -79,7 +79,7 @@ Run from the project root:
 python3 -m unittest discover -s tests
 node --check public/app.js
 node --check public/image-review.js
-node --test tests/test_image_review.cjs
+node --test tests/*.cjs
 ```
 
 Python tests make no real provider calls and require no keys. GitHub Actions runs both checks for pushes and pull requests.
@@ -129,3 +129,11 @@ The Cloudflare adapter has mocked coverage, and live FLUX generation has been ve
 Reading keeps the large word, flip clue, audio buttons, and navigation. Voice, speed, previews, and service details live in Settings. Picture generation and approval live in My word garden.
 
 Generated pictures are saved as pending and shown only in the review dialog. **Approve picture** enables a picture for both library and reading cards; **Keep word only** discards the pending AI picture (sample emoji clues may remain). Closing the review leaves it waiting. Approval is saved in this browser. Older generated pictures without an approval flag move to the review queue once, preserving their files and keeping the reading view free of unreviewed AI artwork. This is a review convenience, not a parental authentication gate.
+
+## Clickable letters and picture clues
+
+The card itself no longer flips when clicked. **Show picture clue / Hide picture clue** toggles the approved illustration and sentence while the word remains visible. Each letter is a keyboard-accessible button. For mapped beginner words, taps play context-specific sounds using `eleven_flash_v2` with allowlisted CMU ARPAbet phoneme tags. Whole-word/sentence narration continues to use `eleven_multilingual_v2`.
+
+Shared spellings (for example **sh** in fish and **ir** in bird) highlight together and play one sound from either letter. Silent e is explicitly identified instead of spoken. `public/phonics.js` contains the demo word map; `phonics.py` contains the server's sound allowlist. Add mappings to the word table to extend coverage; do not infer arbitrary word pronunciations from individual letter names.
+
+For an unmapped word or unavailable sound service, the UI explicitly labels playback as letter names. Word/sentence pronunciation remains available. Sounds use the configured ElevenLabs voice even when a device voice is selected for ordinary narration; browser voices cannot reliably synthesize isolated phonemes. Review synthesized phonics with an educator before relying on it for teaching. Provider success confirms audio delivery, not instructional accuracy.

@@ -4,6 +4,7 @@ from collections import OrderedDict
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 import images
+import phonics
 
 ROOT = Path(__file__).parent / 'public'
 
@@ -159,12 +160,16 @@ class Handler(SimpleHTTPRequestHandler):
             if not 0 < size <= 4000:
                 return self.reply(400, {'error':'Invalid speech request.'})
             data = json.loads(self.rfile.read(size))
-            text = data.get('text')
+            if not isinstance(data, dict):
+                return self.reply(400, {'error':'Invalid speech request.'})
+            sound = data.get('sound')
+            text = phonics.speech_for_sound(sound) if sound is not None else data.get('text')
             if not isinstance(text, str) or not text.strip() or len(text) > 600:
                 return self.reply(400, {'error':'Speech must contain 1–600 characters.'})
             speed = .85 if data.get('slow') is True else .95
             voice = os.environ['ELEVENLABS_VOICE_ID']
-            model = 'eleven_multilingual_v2'
+            # Multilingual v2 does not support SSML phonemes. Flash v2 does.
+            model = 'eleven_flash_v2' if sound is not None else 'eleven_multilingual_v2'
             key = (voice, model, text, speed)
             with AUDIO_LOCK:
                 audio = AUDIO_CACHE.get(key)

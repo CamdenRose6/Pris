@@ -46,3 +46,25 @@ class SpeechTests(unittest.TestCase):
             payload = json.loads(provider.call_args.args[0].data)
             self.assertEqual(payload['voice_settings']['speed'], .85)
         AUDIO_CACHE.clear()
+
+    @patch.dict('os.environ', {'ELEVENLABS_API_KEY':'test', 'ELEVENLABS_VOICE_ID':'test'})
+    def test_letter_sounds_use_a_phoneme_capable_model(self):
+        AUDIO_CACHE.clear()
+        with patch('urllib.request.urlopen') as provider:
+            provider.return_value.__enter__.return_value.read.return_value = b'test-mp3'
+            handler = self.handler({'sound':'k','text':'c'})
+            handler.create_speech()
+            self.assertEqual(handler.status,200)
+            payload=json.loads(provider.call_args.args[0].data)
+            self.assertEqual(payload['model_id'],'eleven_flash_v2')
+            self.assertIn('ph="K"',payload['text'])
+            self.assertNotIn('>c<',payload['text'])
+        AUDIO_CACHE.clear()
+
+    @patch.dict('os.environ', {'ELEVENLABS_API_KEY':'test', 'ELEVENLABS_VOICE_ID':'test'})
+    def test_untrusted_phoneme_markup_is_rejected(self):
+        with patch('urllib.request.urlopen') as provider:
+            handler=self.handler({'sound':'<phoneme ph="BAD">','text':'c'})
+            handler.create_speech()
+            self.assertEqual(handler.result[0],400)
+            provider.assert_not_called()
