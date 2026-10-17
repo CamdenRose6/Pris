@@ -88,11 +88,14 @@ def decode_image(result):
 
 def generate(data):
     prompt = image_prompt(data)
+    variation = data.get('variation', '')
+    if not isinstance(variation, str) or (variation and not re.fullmatch(r'[a-zA-Z0-9-]{1,64}', variation)):
+        raise ImageError('Invalid picture variation.', 400)
     selected = provider()
     if selected not in ('cloudflare', 'google'):
         raise ImageError('Set IMAGE_PROVIDER to cloudflare or google.', 503)
     model = FLUX_MODEL if selected == 'cloudflare' else MODEL
-    digest = hashlib.sha256((model + prompt).encode()).hexdigest()
+    digest = hashlib.sha256((model + prompt + variation).encode()).hexdigest()
     # Serialize cache checks/generation so repeat clicks do not make duplicate calls.
     with LOCK:
         for extension in ('png', 'jpg', 'webp'):

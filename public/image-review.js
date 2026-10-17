@@ -33,10 +33,16 @@
     delete card.pendingImageUrl;
     delete card.pendingImageModel;
   }
+  function useEmoji(card, value) {
+    const emoji=String(value||'').trim();
+    const parts=typeof Intl.Segmenter==='function'?[...new Intl.Segmenter(undefined,{granularity:'grapheme'}).segment(emoji)]:[...emoji];
+    if(parts.length!==1||!/[\p{Extended_Pictographic}\p{Regional_Indicator}\u20e3]/u.test(emoji))throw Error('Choose one emoji for the picture clue.');
+    card.emoji=emoji;discard(card);delete card.imageUrl;delete card.imageModel;delete card.imageApproved;
+  }
   function approvedURL(card) {
     return card.imageApproved === true && validURL(card.imageUrl) ? card.imageUrl : null;
   }
-  const api = { validURL, migrate, stage, approve, discard, approvedURL };
+  const api = { validURL, migrate, stage, approve, discard, useEmoji, approvedURL };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.WordRingImages = api;
 })(typeof window !== 'undefined' ? window : globalThis);

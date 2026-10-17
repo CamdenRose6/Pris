@@ -1,4 +1,4 @@
-# Working on WordRing
+# Working on PRIS
 
 Read README.md and docs/HANDOFF.md first. Keep the main experience focused on learning to read: the word is visible first, narration is available, and picture clues are optional.
 
@@ -21,7 +21,7 @@ Read README.md and docs/HANDOFF.md first. Keep the main experience focused on le
 
 - `python3 -m unittest discover -s tests` passes.
 - `node --check public/app.js` passes if JavaScript changed.
-- Read words opens first; previous/next and flip work, including empty folders.
+- Signed-out visitors see only login. Teacher and student sign-in opens their appropriate workspace; reading navigation and picture clues still work.
 - Manual words save and survive a browser refresh.
 - Audio stops when changing cards; missing AI credentials leave usable fallback behavior.
 - Check narrow and desktop layouts for any UI changes.

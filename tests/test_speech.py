@@ -6,6 +6,18 @@ from server import Handler, AUDIO_CACHE
 
 
 class SpeechTests(unittest.TestCase):
+    def setUp(self):
+        import tempfile
+        from pathlib import Path
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        recordings = patch('phonics.RECORDINGS', Path(directory.name))
+        recordings.start()
+        self.addCleanup(recordings.stop)
+        bundled = patch('phonics.BUNDLED_RECORDINGS', Path(directory.name))
+        bundled.start()
+        self.addCleanup(bundled.stop)
+
     def handler(self, payload):
         body = json.dumps(payload).encode()
         handler = Handler.__new__(Handler)
@@ -48,7 +60,7 @@ class SpeechTests(unittest.TestCase):
         AUDIO_CACHE.clear()
 
     @patch.dict('os.environ', {'ELEVENLABS_API_KEY':'test', 'ELEVENLABS_VOICE_ID':'test'})
-    def test_c_uses_audible_kuh_instead_of_letter_name(self):
+    def test_c_uses_pure_consonant_without_added_vowel(self):
         AUDIO_CACHE.clear()
         with patch('urllib.request.urlopen') as provider:
             provider.return_value.__enter__.return_value.read.return_value = b'test-mp3'
@@ -56,8 +68,9 @@ class SpeechTests(unittest.TestCase):
             handler.create_speech()
             self.assertEqual(handler.status,200)
             payload=json.loads(provider.call_args.args[0].data)
-            self.assertEqual(payload['model_id'],'eleven_multilingual_v2')
-            self.assertEqual(payload['text'],'kuh')
+            self.assertEqual(payload['model_id'],'eleven_v4')
+            self.assertEqual(payload['text'],'/k/')
+            self.assertNotIn('kuh',payload['text'])
         AUDIO_CACHE.clear()
 
     @patch.dict('os.environ', {'ELEVENLABS_API_KEY':'test', 'ELEVENLABS_VOICE_ID':'test'})
@@ -68,8 +81,8 @@ class SpeechTests(unittest.TestCase):
             handler = self.handler({'sound':'a','text':'a'})
             handler.create_speech()
             payload=json.loads(provider.call_args.args[0].data)
-            self.assertEqual(payload['model_id'],'eleven_flash_v2')
-            self.assertIn('ph="AE1"',payload['text'])
+            self.assertEqual(payload['model_id'],'eleven_v4')
+            self.assertEqual(payload['text'],'/æ/')
             self.assertNotIn('>sound<',payload['text'])
         AUDIO_CACHE.clear()
 
@@ -80,3 +93,26 @@ class SpeechTests(unittest.TestCase):
             handler.create_speech()
             self.assertEqual(handler.result[0],400)
             provider.assert_not_called()
+
+    @patch.dict('os.environ', {}, clear=True)
+    def test_reviewed_sound_works_without_credentials_or_provider(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as directory, patch('phonics.RECORDINGS', Path(directory)), patch('urllib.request.urlopen') as provider:
+            Path(directory, 'k.mp3').write_bytes(b'reviewed-hard-k')
+            for slow in (False, True):
+                handler = self.handler({'sound':'k', 'slow':slow})
+                handler.create_speech()
+                self.assertEqual(handler.status, 200)
+                self.assertEqual(handler.wfile.getvalue(), b'reviewed-hard-k')
+            Path(directory, 'k.slow.mp3').write_bytes(b'reviewed-slow-k')
+            handler = self.handler({'sound':'k', 'slow':True})
+            handler.create_speech()
+            self.assertEqual(handler.wfile.getvalue(), b'reviewed-slow-k')
+            provider.assert_not_called()
+
+    @patch.dict('os.environ', {}, clear=True)
+    def test_recording_path_cannot_be_controlled_by_client(self):
+        handler = self.handler({'sound':'../../private'})
+        handler.create_speech()
+        self.assertEqual(handler.result[0], 400)

@@ -29,3 +29,18 @@ test('every mapped word covers its spelling and uses valid sound IDs',()=>{
   assert.ok(groups.every(p=>Object.hasOwn(phonics.sounds,p.sound)),word);
  }
 });
+
+test('exceptions and inflections follow spoken sounds, not spelling rules',()=>{
+ for(const [word,expected] of Object.entries({have:['h','a','v','silent'],said:['s','e','d'],dogs:['d','o','g','z'],jumped:['j','u','m','p','t'],played:['p','l','ay','d'],knee:['silent','n','ee'],phone:['f','oh','n','silent']})){
+  assert.deepEqual(phonics.segments(word).map(p=>p.sound),expected,word);
+ }
+ for(const word of ['read','wind','lead','bow'])assert.equal(phonics.segments(word),null);
+});
+test('sound hints distinguish vowel teams without coaching narration',()=>{
+ assert.match(phonics.hint(phonics.letters('cat')[0],'cat'),/as in cat/);
+ assert.match(phonics.hint(phonics.letters('book')[1],'book'),/as in book/);
+ assert.match(phonics.hint(phonics.letters('moon')[1],'moon'),/as in moon/);
+ for(const groups of Object.values(phonics.words))for(const part of groups){
+  assert.ok(!phonics.hint(part,'word').includes('undefined'));
+ }
+});

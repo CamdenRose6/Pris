@@ -1,0 +1,314 @@
+{
+  "cards": [
+    {
+      "id": "79a685af-ae76-4146-91b7-c50045169c90",
+      "word": "fish",
+      "folder": "lesson k-1",
+      "grade": "1",
+      "definition": "An animal that lives in water.",
+      "sentence": "The fish can swim.",
+      "hint": "An animal that lives in water.",
+      "imagePrompt": "A simple illustration of fish, no text",
+      "emoji": "🐟",
+      "source": "sample",
+      "imageModel": "",
+      "pendingImageModel": ""
+    },
+    {
+      "id": "8500a6ad-306f-4179-875f-accb8ec3b0ef",
+      "word": "ship",
+      "folder": "lesson k-1",
+      "grade": "1",
+      "definition": "A large boat.",
+      "sentence": "The ship is big.",
+      "hint": "A large boat.",
+      "imagePrompt": "A simple illustration of ship, no text",
+      "emoji": "🚢",
+      "source": "sample",
+      "imageModel": "",
+      "pendingImageModel": ""
+    },
+    {
+      "id": "bb5f119f-a26a-4637-8bc3-78f45851cbf3",
+      "word": "tree",
+      "folder": "lesson k-1",
+      "grade": "1",
+      "definition": "A tall plant with a trunk.",
+      "sentence": "I see a green tree.",
+      "hint": "A tall plant with a trunk.",
+      "imagePrompt": "A simple illustration of tree, no text",
+      "emoji": "🌳",
+      "source": "sample",
+      "imageModel": "",
+      "pendingImageModel": ""
+    },
+    {
+      "id": "db83b06d-d6be-4aa0-9503-cb043dcfe55e",
+      "word": "rain",
+      "folder": "lesson k-1",
+      "grade": "1",
+      "definition": "Water that falls from clouds.",
+      "sentence": "The rain is on my hat.",
+      "hint": "Water that falls from clouds.",
+      "imagePrompt": "A simple illustration of rain, no text",
+      "emoji": "🌧️",
+      "source": "sample",
+      "imageModel": "",
+      "pendingImageModel": ""
+    },
+    {
+      "id": "9f58769a-6565-41f1-a11e-16a8d7c8d110",
+      "word": "moon",
+      "folder": "lesson k-1",
+      "grade": "1",
+      "definition": "The round object we see in the night sky.",
+      "sentence": "The moon is up.",
+      "hint": "The round object we see in the night sky.",
+      "imagePrompt": "A simple illustration of moon, no text",
+      "emoji": "🌙",
+      "source": "sample",
+      "imageModel": "",
+      "pendingImageModel": ""
+    },
+    {
+      "id": "c08164b0-a6c1-4c89-907b-e9c42f46e7ab",
+      "word": "book",
+      "folder": "lesson k-1",
+      "grade": "1",
+      "definition": "Pages with words or pictures to read.",
+      "sentence": "I can read my book.",
+      "hint": "Pages with words or pictures to read.",
+      "imagePrompt": "A simple illustration of book, no text",
+      "emoji": "📖",
+      "source": "sample",
+      "imageModel": "",
+      "pendingImageModel": ""
+    },
+    {
+      "id": "d754132e-21a7-49a9-a5f3-3db0bdde3ee4",
+      "word": "volcano",
+      "folder": "lesson 4-5",
+      "grade": "5",
+      "definition": "An opening in Earth through which hot rock and gases can escape.",
+      "sentence": "We learned about the volcano.",
+      "hint": "An opening in Earth through which hot rock and gases can escape.",
+      "imagePrompt": "A simple illustration of a volcano, no text",
+      "emoji": "🌋",
+      "source": "sample",
+      "imageModel": "",
+      "pendingImageModel": "",
+      "comprehension": {
+        "passage": "A town near a volcano held an evacuation practice every spring. Some shop owners wanted to cancel it because no eruption had happened in many years. They argued that closing their shops for a morning cost money, while the mountain appeared quiet. A science team explained that a quiet mountain was not a promise of future safety. The team could measure changes underground, but it could not name the exact day of an eruption.\n\nDuring the practice, a bridge on the planned escape route was closed for repairs. Families tried another road and discovered that two buses could not pass each other on its narrow bend. The town changed its route before the next practice. Although the exercise could not prevent an eruption, it revealed a problem that a map alone had missed. The shop owners agreed to keep practicing, while asking the town to choose a less busy morning.",
+        "questions": [
+          {
+            "question": "Which judgment about the practice is best supported?",
+            "choices": [
+              "It was unnecessary because the mountain looked quiet.",
+              "It was useful even though an eruption was uncertain.",
+              "It proved that the scientists could predict an eruption."
+            ],
+            "answer": 1
+          },
+          {
+            "question": "Which detail most strongly supports the value of practicing?",
+            "choices": [
+              "The shops lost a morning of business.",
+              "The mountain had been quiet for many years.",
+              "The buses exposed a problem with the escape route."
+            ],
+            "answer": 2
+          }
+        ]
+      }
+    },
+    {
+      "id": "359c55c9-fc4b-4d30-80f4-c7af0559ee3f",
+      "word": "telescope",
+      "folder": "lesson 4-5",
+      "grade": "5",
+      "definition": "An instrument that makes distant objects appear closer.",
+      "sentence": "We learned about the telescope.",
+      "hint": "An instrument that makes distant objects appear closer.",
+      "imagePrompt": "A simple illustration of a telescope, no text",
+      "emoji": "🔭",
+      "source": "sample",
+      "imageModel": "",
+      "pendingImageModel": "",
+      "comprehension": {
+        "passage": "For three nights, a school astronomy club used a telescope to observe a faint light near a bright planet. On the first night, the light seemed to move. Several students announced that they had discovered a new moon. Their teacher asked them to record the telescope settings, the weather, and the position of nearby stars before drawing a conclusion. One student complained that taking notes left less time for looking through the telescope.\n\nThe notes showed that a different eyepiece had been used each night. On the fourth night, the club repeated its observations with the same equipment and clearer skies. The light stayed in line with the distant stars while the planet changed position. The students no longer thought the light was a moon. They had not made the discovery they hoped for, but they could explain why their first impression had been misleading. The student who disliked note taking volunteered to organize the records.",
+        "questions": [
+          {
+            "question": "What is the main purpose of this account?",
+            "choices": [
+              "To show how careful records can improve a conclusion.",
+              "To argue that students should avoid uncertain observations.",
+              "To prove that better weather always produces discoveries."
+            ],
+            "answer": 0
+          },
+          {
+            "question": "Which observation most weakens the students’ original claim?",
+            "choices": [
+              "The light was faint beside a bright planet.",
+              "The light stayed with the stars as the planet moved.",
+              "A student preferred observing to taking notes."
+            ],
+            "answer": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "917793d7-9c10-4c84-b7ad-7c70d6d3f1b9",
+      "word": "microscope",
+      "folder": "lesson 4-5",
+      "grade": "5",
+      "definition": "An instrument that makes very small objects look larger.",
+      "sentence": "We learned about the microscope.",
+      "hint": "An instrument that makes very small objects look larger.",
+      "imagePrompt": "A simple illustration of a microscope, no text",
+      "emoji": "🔬",
+      "source": "sample",
+      "imageModel": "",
+      "pendingImageModel": "",
+      "comprehension": {
+        "passage": "Two groups used a microscope to study pond water collected from opposite shores. One group counted far more tiny moving organisms and claimed that its shore was healthier. The other group pointed out that both samples had been collected on the same afternoon. They thought that this made the comparison fair. Their teacher asked whether collecting at the same time was the only condition that mattered. The class listed several differences between the samples before returning to its notebooks.\n\nOne jar had been filled near underwater plants, while the other held water from a muddy path. The jars also contained different amounts of water. The class collected new samples of equal size from several places on each shore and counted again. The difference between shores became much smaller. Students decided that the original counts described those two jars better than they described the entire pond. They planned more sampling before making a claim about either shore’s health.",
+        "questions": [
+          {
+            "question": "Why is the class’s final conclusion more reasonable?",
+            "choices": [
+              "It assumes that every part of the pond is identical.",
+              "It treats the larger first count as proof of better health.",
+              "It considers how sample collection could affect the counts."
+            ],
+            "answer": 2
+          },
+          {
+            "question": "What limitation would still matter after the second collection?",
+            "choices": [
+              "Several samples may still miss changes over time.",
+              "Equal amounts of water cannot contain living things.",
+              "Using one microscope prevents any useful comparison."
+            ],
+            "answer": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "00a2e0d2-a3a9-4406-a0f2-6ad4ec46a543",
+      "word": "satellite",
+      "folder": "lesson 4-5",
+      "grade": "5",
+      "definition": "An object that travels around a planet, often collecting information.",
+      "sentence": "We learned about the satellite.",
+      "hint": "An object that travels around a planet, often collecting information.",
+      "imagePrompt": "A simple illustration of a satellite, no text",
+      "emoji": "🛰️",
+      "source": "sample",
+      "imageModel": "",
+      "pendingImageModel": "",
+      "comprehension": {
+        "passage": "A satellite image showed that the trees around a reservoir had become less green over one summer. A local newspaper suggested that a new walking trail was damaging the forest. The trail had opened in spring, and the timing seemed convincing. A student team compared the image with rainfall records and older pictures of the same area. They also marked places where people could walk and places where no trail existed. Their map included the shaded slopes as well as the sunnier hillsides.\n\nThe trees were less green in both busy and remote areas, while the summer had been unusually dry. The team thought drought was a stronger explanation for the broad pattern than the trail alone. However, the satellite could not show whether hikers had harmed a few trees beside the path. The students recommended a ground survey before dismissing that possibility. Their report separated what the images supported from what still needed to be checked.",
+        "questions": [
+          {
+            "question": "Which explanation best fits the broad change in the images?",
+            "choices": [
+              "The trail harmed every tree around the reservoir.",
+              "Dry conditions affected areas with and without hikers.",
+              "The satellite stopped recognizing trees beside paths."
+            ],
+            "answer": 1
+          },
+          {
+            "question": "Why does the team recommend a ground survey?",
+            "choices": [
+              "The images do not settle whether local trail damage occurred.",
+              "The rainfall records prove that hikers caused the drought.",
+              "Remote areas are always healthier than areas near trails."
+            ],
+            "answer": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "b543e708-28e7-42f3-b264-cf5833c61649",
+      "word": "compass",
+      "folder": "lesson 4-5",
+      "grade": "5",
+      "definition": "An instrument with a needle that helps people find direction.",
+      "sentence": "We learned about the compass.",
+      "hint": "An instrument with a needle that helps people find direction.",
+      "imagePrompt": "A simple illustration of a compass, no text",
+      "emoji": "🧭",
+      "source": "sample",
+      "imageModel": "",
+      "pendingImageModel": "",
+      "comprehension": {
+        "passage": "On a forest field trip, two teams followed the same map to an old lookout. One team used a compass and kept a record of its turns. The other followed a wide path, arguing that the busiest route probably led to the lookout. At first, the second team moved more quickly. The path was smooth, and fresh footprints seemed to confirm its choice. Both teams had been told to stay together and return before the afternoon bus arrived at the park entrance.\n\nThe wide path eventually curved downhill toward a picnic area. The first team noticed that the mapped route should continue uphill and checked its direction at each junction. It reached the lookout later than expected because a fallen branch had blocked part of the route. When the teams compared their journeys, they agreed that speed alone was a poor measure of a good decision. The team with the compass had used several clues together instead of relying on one appealing sign.",
+        "questions": [
+          {
+            "question": "Which claim is best supported by the teams’ experiences?",
+            "choices": [
+              "A familiar-looking path is more reliable than a map.",
+              "A slower journey always means that a team is lost.",
+              "Checking multiple clues can be more useful than moving quickly."
+            ],
+            "answer": 2
+          },
+          {
+            "question": "Which detail challenges the second team’s reasoning?",
+            "choices": [
+              "Fresh footprints appeared on the wide path.",
+              "The wide path led to a different destination.",
+              "A branch delayed the team using the map."
+            ],
+            "answer": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "9b0de668-e602-409a-bcdf-5c633e172fb5",
+      "word": "thermometer",
+      "folder": "lesson 4-5",
+      "grade": "5",
+      "definition": "An instrument that measures temperature.",
+      "sentence": "We learned about the thermometer.",
+      "hint": "An instrument that measures temperature.",
+      "imagePrompt": "A simple illustration of a thermometer, no text",
+      "emoji": "🌡️",
+      "source": "sample",
+      "imageModel": "",
+      "pendingImageModel": "",
+      "comprehension": {
+        "passage": "The school council wanted to know whether planting trees would make the playground cooler. On a warm afternoon, students placed one thermometer beneath a tree and another beside the brick wall. The shaded reading was lower, so one group proposed covering the entire playground with trees. Another group warned that the wall might store heat and make the comparison unfair. The council postponed its decision until the students could collect more useful evidence. They wanted a plan that would also leave enough room for running games.\n\nFor a week, the students took readings at the same times in several shaded and open locations. They kept the thermometers at the same height and away from walls. Shaded sites were usually cooler, although the difference changed with cloud cover and time of day. The council approved a small planting area and planned to measure again after the trees grew. Its decision used the evidence without claiming that the experiment answered every question about the playground.",
+        "questions": [
+          {
+            "question": "How did the council respond to the evidence?",
+            "choices": [
+              "It used a supported pattern while recognizing uncertainty.",
+              "It rejected all measurements because some conditions changed.",
+              "It treated one afternoon as proof that every tree would help."
+            ],
+            "answer": 0
+          },
+          {
+            "question": "Which change made the second investigation more reliable?",
+            "choices": [
+              "Taking measurements only beside the warm brick wall.",
+              "Comparing several sites under more consistent conditions.",
+              "Choosing the result that supported the largest planting plan."
+            ],
+            "answer": 1
+          }
+        ]
+      }
+    }
+  ],
+  "folders": [
+    "lesson k-1",
+    "lesson 4-5"
+  ]
+}

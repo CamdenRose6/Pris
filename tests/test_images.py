@@ -32,7 +32,7 @@ class ImageTests(unittest.TestCase):
 
     def test_invalid_inputs_never_call_provider(self):
         with patch('urllib.request.urlopen') as provider:
-            for data in ([], {}, {'word':' '}, {'word':'a'*101}, {'word':'cat','imagePrompt':42}):
+            for data in ([], {}, {'word':' '}, {'word':'a'*101}, {'word':'cat','imagePrompt':42}, {'word':'cat','variation':42}, {'word':'cat','variation':'/'}):
                 with self.assertRaises(images.ImageError): images.generate(data)
             provider.assert_not_called()
 
@@ -67,6 +67,19 @@ class ImageTests(unittest.TestCase):
             with self.assertRaisesRegex(images.ImageError,'quota'):
                 images.generate({'word':'cat'})
         self.assertEqual(list(images.CACHE.iterdir()),[])
+
+    @patch.dict('os.environ', {'GEMINI_API_KEY':'test-only','IMAGE_PROVIDER':'google'})
+    def test_regeneration_uses_a_new_cache_entry_without_overwriting_original(self):
+        with patch('urllib.request.urlopen') as provider:
+            provider.return_value.__enter__.return_value.read.return_value=json.dumps(self.provider_result()).encode()
+            original=images.generate({'word':'cat'})
+            variant=images.generate({'word':'cat','variation':'demo-variant'})
+            repeated=images.generate({'word':'cat','variation':'demo-variant'})
+            self.assertNotEqual(original['imageUrl'],variant['imageUrl'])
+            self.assertEqual(variant['imageUrl'],repeated['imageUrl'])
+            self.assertTrue(repeated['cached'])
+            self.assertEqual(provider.call_count,2)
+            self.assertTrue((images.CACHE / original['imageUrl'].split('/')[-1]).is_file())
 
     def test_generated_route_rejects_path_traversal(self):
         handler=Handler.__new__(Handler)

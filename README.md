@@ -1,20 +1,30 @@
-# WordRing
+# PRIS — Where Worlds Meet
 
-A reading-first literacy prototype for young learners, built during a one-day hackathon. Start with one large word card, try reading aloud, hear a natural voice, and flip for a picture and sentence clue.
+A literacy prototype built during a one-day hackathon. Teachers create rings, assign content, and track progress. Kindergarten–Grade 1 students read words aloud with clickable phonics and staged clues; Grade 2+ rings include spelling and reading comprehension. PRIS was previously named WordRing; internal storage and API names remain compatible.
 
 ## Get running in two minutes
 
 Requirements: **Python 3.10+**, Git, and a modern browser. Node.js 20+ is optional for the JavaScript syntax check. There are no third-party Python packages or npm dependencies to install.
 
 ```sh
-git clone https://github.com/CamdenRose6/Word-Ring.git
-cd Word-Ring
+git clone https://github.com/CamdenRose6/Pris.git
+cd Pris
 python3 server.py
 ```
 
 On Windows, use `py -3 server.py` if `python3` is unavailable. Open **http://127.0.0.1:8765/**. Keep the terminal running; Ctrl+C stops the server.
 
-**No keys are needed to work on the interface:** the sample word set, manual word entry, folders, and quizzes work locally. Browser speech is the fallback when ElevenLabs is not configured.
+**Sign in to get started:** the signed-out screen shows only login and teacher registration. Create a teacher account, then create student logins from Classroom. Existing local accounts and classroom data remain on their original computer; credentials and databases are never committed.
+
+**No keys are needed for manual content or the example rings.** Live Gemma generation, image generation, and speech recognition require the settings in `.env.example`. Copy it to `.env` and add your own provider credentials. Reviewed a, d, k, and p sounds are bundled in `assets/phonics/`; other sounds need the voice service. The bundled p is the selected first utterance, with no repeat.
+
+To add the two example lessons after creating your teacher account:
+
+```sh
+python3 scripts/import_demo_lessons.py --teacher YOUR_TEACHER_USERNAME
+```
+
+Refresh PRIS afterward. This adds `lesson k-1` (Grade 1) and `lesson 4-5` (Grade 5), with six emoji cards each, without assigning them automatically. The Grade 5 examples include spelling and two reasoning questions per passage. Re-running skips rings with the same names. See [the rehearsal checklist](docs/DEMO_TEST_CHECKLIST.md).
 
 ## What works today
 
@@ -45,7 +55,7 @@ Copy `.env.example` to `.env` in the project root (`cp .env.example .env` on mac
 
 The current model is `eleven_multilingual_v2`. Choose a warm, clear English voice, fill in both ElevenLabs settings, and restart. Refresh the browser and select **Natural AI voice** under Reading voice.
 
-For the current integration, enable **Text to Speech → Access** on a restricted API key; other endpoint permissions can remain **No Access**. A library voice may require a paid plan; if the provider rejects it, choose a default voice available to your account or use an eligible plan. See the [ElevenLabs quickstart](https://elevenlabs.io/docs/eleven-api/quickstart).
+For the current integration, enable **Text to Speech → Access** and **Speech to Text → Access** on a restricted API key; other endpoint permissions can remain **No Access**. A library voice may require a paid plan; if the provider rejects it, choose a default voice available to your account or use an eligible plan. See the [ElevenLabs quickstart](https://elevenlabs.io/docs/eleven-api/quickstart).
 
 Only the requested word or sentence is sent to ElevenLabs. Generation can incur provider charges. Clips are cached in memory and disappear when the server restarts. Device fallback quality depends on installed browser/system voices.
 
@@ -90,12 +100,12 @@ Python tests make no real provider calls and require no keys. GitHub Actions run
 - **Old interface or voice:** refresh the browser after changes. Restart the Python server after changing `.env` or `server.py`.
 - **Voice falls back to device:** check both ElevenLabs settings, key permissions, available credits, and whether your selected voice is permitted for API use.
 - **Gemma not connected:** set `GEMINI_API_KEY` and restart. For an alternate compatible provider, set all three `GEMMA_*` variables. A quota or permission failure is shown in the create dialog.
-- **Cards differ between computers:** data is saved in each browser's localStorage, not in Git or a shared database. Do not clear site data unless you want to discard local cards.
+- **Cards differ between computers:** guest cards are saved in each browser’s localStorage; signed-in classroom data is saved in the local server’s SQLite database, not in Git. Do not clear site data unless you want to discard local cards.
 - **No audio:** press a playback button first, check device volume, or choose a different device voice.
 
 ## Still to build
 
-FLUX.1 Schnell is the default image provider; live generation requires Cloudflare account settings. Paid Nano Banana 2 remains an explicit optional provider. Cards without generated pictures show labeled emoji placeholders. Letter/phoneme audio, speech scoring, accounts, cloud sync, and deployment are not implemented. This is a local development server, not a production server; keep it bound to localhost.
+FLUX.1 Schnell is the default image provider; live generation requires Cloudflare account settings. Paid Nano Banana 2 remains an explicit optional provider. Cards without generated pictures show labeled emoji placeholders. Letter sounds, word recognition, and local classroom accounts are implemented. Cloud deployment and cross-server synchronization are not implemented. This is a local development server, not a production server; keep it bound to localhost.
 
 ## Optional paid Nano Banana 2 pictures
 
@@ -132,10 +142,84 @@ Generated pictures are saved as pending and shown only in the review dialog. **A
 
 ## Clickable letters and picture clues
 
-The card itself no longer flips when clicked. **Show picture clue / Hide picture clue** toggles the approved illustration and sentence while the word remains visible. Each letter is a keyboard-accessible button. For mapped beginner words, taps play context-specific sounds using `eleven_flash_v2` with allowlisted CMU ARPAbet phoneme tags. Whole-word/sentence narration continues to use `eleven_multilingual_v2`.
+**Show picture clue / Hide picture clue** toggles the approved illustration and sentence while the word remains visible. Each letter is a keyboard-accessible button. Mapped letters play only their sound, using `eleven_v4` and server-owned IPA transcriptions. Hard c/k requests `/k/`; short a requests `/æ/`, distinct from long a `/eɪ/`. There are no spoken lessons or example words in the synthesis request. Whole-word/sentence narration continues to use `eleven_multilingual_v2`.
 
-Shared spellings (for example **sh** in fish and **ir** in bird) highlight together and play one sound from either letter. Silent e is explicitly identified instead of spoken. `public/phonics.js` contains the demo word map; `phonics.py` contains the server's sound allowlist. Add mappings to the word table to extend coverage; do not infer arbitrary word pronunciations from individual letter names.
+Shared spellings (sh in fish, ir in bird) highlight together and play one sound from either letter. Silent letters are identified without speech. `public/phonics.js` holds explicit word mappings; `phonics.py` holds the sound allowlist and IPA. Unknown or ambiguous words use explicitly labeled letter names rather than guessed phonics. The baseline is broad American English, without modeling regional variation.
 
-For an unmapped word, the UI explicitly labels playback as letter names. For mapped sounds, an unavailable sound service shows an error and never substitutes the letter name. Word/sentence pronunciation remains available. Sounds use the configured ElevenLabs voice even when a device voice is selected for ordinary narration; browser voices cannot reliably synthesize isolated phonemes. Review synthesized phonics with an educator before relying on it for teaching. Provider success confirms audio delivery, not instructional accuracy.
+Sound playback uses the configured ElevenLabs voice even when a device voice is selected for ordinary narration. Sound-service failures never substitute letter names. The voice must have access to Eleven v4. The changed model and request text create new cache identities, so old Flash v2 clips are not reused. Normal sounds use speed 1.0, slower sounds 0.85.
 
-Stop consonants use audible teaching respellings (C/K: kuh, B: buh, D: duh, G: guh, J: juh, P: puh, T: tuh) through Multilingual v2. Other mapped sounds retain explicit phonemes through Flash v2. This makes the requested consonant release audible instead of relying on an isolated stop token.
+### Audio validation and recordings
+
+Live v4 test clips for hard c and short a were generated in `.wordring/phonics/candidates/`. They are candidates, not approved recordings. API success and automated tests do not establish perceptual correctness. Listen before declaring the pronunciation fixed. [ElevenLabs documents direct IPA support and voice-dependent pronunciation](https://elevenlabs.io/docs/overview/capabilities/text-to-speech/best-practices).
+
+An optional reviewed MP3 at `.wordring/phonics/reviewed/<sound-id>.mp3` overrides synthesis without API credentials. Only install recordings after listening review; none are bundled or automatically approved. An optional `<sound-id>.slow.mp3` supplies slower playback; otherwise the normal recording is used without stretching it. Files are limited to 4 MB and allowlisted sound IDs. These files are ignored by Git and require separate backup. Test candidates are never automatically played by the app.
+
+## Voice reading: attempt → picture → word audio
+
+In Read words, **Read it aloud** records up to 8 seconds. Tap Done speaking to submit early, or Cancel to discard. The first confident nonmatching word unlocks an optional picture clue; a second unlocks whole-word/sentence audio. Clickable letter sounds are available immediately. A correct match unlocks Next word. Skip for now allows moving on without a correct result. Progress is session-local, independent per card, and resets on reload.
+
+Silence, low-confidence/missing-confidence transcripts, cancelled recordings, and service failures do not increase the unsuccessful-attempt count. The UI shows what the recognizer heard. Case, punctuation, simple article prefixes, and a small unambiguous homophone list are normalized. This checks recognition of the intended word, not phoneme-by-phoneme pronunciation or reading ability. There is no target-word bias in the transcription request. The confidence threshold is conservative and heuristic, not calibrated for children; test with intended learners before relying on it.
+
+Enable **Speech to Text → Access** on the existing ElevenLabs key. WordRing uses `scribe_v2`; calls may consume provider credits. There is no new API key setting. If permission, quota, or billing is unavailable, the attempt is not scored and a useful error appears.
+
+Recordings start only after an explicit click and the browser's microphone permission. Browser media tracks stop on submission, cancellation, navigation, and page exit. WordRing does not persist recordings or transcripts; audio is uploaded through the local server to ElevenLabs, whose own retention and privacy terms apply. Do not mistake lack of app persistence for zero provider retention. Use localhost for development; production microphone capture requires HTTPS. Permission must be given by the person using the browser; tests use synthetic data and mocked microphone objects.
+
+Approve picture clues in My word garden before practice. If a word has neither an approved image nor a sample emoji, its unlocked picture button reports that no clue is ready. Letter sounds are available from the first attempt. Whole-word and sentence narration remain locked until two unsuccessful attempts, including via keyboard shortcuts.
+
+Verification: the initial read-first screen and automated progression/cancellation tests pass. Live synthetic speech was accepted for “cat” when the target was “cat”; “dog” returned a retry for that target. Human microphone capture and recognition with children remain to be verified in the browser.
+
+Letter-sound exception: b and d use the short respellings `buh` and `duh` with the existing voice model because isolated `/b/` and `/d/` were read aloud as “slash b slash” and “slash d slash”. The d request includes a `[warmly]` delivery tag and a full stop to aim for a gentler tone; listening review is still needed. Other sounds retain their existing IPA requests. Reviewed local recordings still take precedence.
+
+## Version 6: local classrooms
+
+Open **Sign in → Create a teacher account**. Teachers open directly to Classroom, create student logins, and organize words in **My Rings**. Select a ring in the sidebar to add words and approve pictures, then assign a ring or all ring words to a student. Teacher navigation contains Classroom, Settings, and My Rings; reading and practice remain in the student/guest experience. **Import this browser’s guest words** copies the existing guest library into the teacher account; guest data is preserved separately. **Save words** retries a failed account save.
+
+Students sign in with the username/password their teacher created. Read words shows only their assignments. Letter sounds are available immediately; one unsuccessful checked reading unlocks the optional picture, two unlock whole-word audio. A correct recognition earns the card into **My Ring**. Skip, silence, unclear recognition, and provider failures do not award a word. Teacher **Refresh progress** shows saved outcomes and checked-attempt counts. My Ring is a collection of successfully recognized words, not a validated mastery assessment.
+
+Account data lives in ignored `.wordring/classroom.sqlite3` (SQLite, included in Python). Restarting the server or browser preserves accounts, assignments, and student progress. Teachers’ libraries save to this database, rather than browser localStorage. Guest practice continues to use `wordring-v1` localStorage. Student/teacher account data is not copied into guest mode on sign-out. Assignments are snapshots: edits/removal in the teacher library do not silently change an existing assignment or reset earned progress; assign a new card to change a word. Approve pictures before assigning.
+
+Passwords use a unique random salt and PBKDF2-HMAC-SHA256 (600,000 iterations); plaintext passwords are not stored. See [Python’s password key-derivation documentation](https://docs.python.org/3/library/hashlib.html#key-derivation). Session tokens are stored as hashes and sent via HttpOnly, SameSite=Strict cookies with 12-hour expiry. Account endpoints reject cross-origin writes. Students cannot create lessons, generate pictures, modify libraries, or inspect other students’ progress; teachers see only their own students. The server chooses the assigned target word and saves the recognition outcome itself. There is no client endpoint for awarding arbitrary success. Audio/transcripts are not saved in the classroom database.
+
+**Local prototype limits:** teacher registration is open on the local server, without email verification, password recovery, or invitations. Usernames are unique across the installation. Do not use real student data yet. This remains a localhost-only development server: HTTPS, production authentication/recovery, privacy review, operational backups, durable image storage, and deployment configuration are still needed before school use. SQLite is for this local prototype; DigitalOcean App Platform needs durable external storage (for example PostgreSQL plus object storage), not its disposable container filesystem. No paid resources were provisioned.
+
+To back up locally, stop the server and copy the entire `.wordring/` directory to private storage; it contains the database and picture/audio assets. Keep it out of Git. Automated tests use temporary databases and mocked recognition. Browser verification used synthetic teacher/student accounts and a seeded successful reading, not a child’s microphone recording.
+
+Teachers can right-click a named ring under **My Rings → Delete ring…**, then confirm. This removes that ring and its cards from the teacher library; existing student assignments and earned progress remain. Keyboard users can focus a ring and press **Shift+F10**. A failed save keeps the ring intact.
+
+Click the teacher’s **My Rings** sidebar heading to see all rings and their card counts. Select a ring to edit its cards. The separate All rings sidebar entry has been removed.
+
+To assign a ring to the whole class, choose **Everyone in the class** in the Student dropdown, select the ring, and click **Assign to everyone**. This assigns to all current students in that teacher’s classroom; future students need a separate assignment. Existing assignments and earned progress are preserved.
+
+## Student progress cards
+
+Classroom shows each student’s name, assigned words read/total, and a 14-day cumulative chart built from saved successful-reading dates. Expand View assigned words for per-word attempts. Empty histories stay flat; no sample progress is invented.
+
+On track means the student’s completed-assignment percentage is at or above the arithmetic mean of those percentages for current classmates with assignments. Below that average shows bold red Needs attention. Students without assignments are excluded from the mean. When nobody has completed any assigned words, students show Ready to start instead. This is a current comparison: changing assignments can change completion percentages. Refresh progress reloads the data.
+
+## Version 8: student rings and ideas
+
+Students sign in directly to **My Ring**, where assigned rings show earned-word progress. Select a ring to read its cards; the My Ring button returns to the overview. Reading and practice are no longer separate student navigation items. Correctly read words still count toward saved progress.
+
+In **Request a ring**, students choose an idea such as Sports, Movies, Superheroes, or Animals, or enter their own topic. Requests are stored locally in the classroom database and visible only to that student and their teacher. Students can have up to five pending ideas; identical pending topics are rejected.
+
+Teachers use the **Requests** tab to approve or deny ideas. Approval alone does not generate content or assign cards. For an approved idea, choose a grade level and a word count, then generate with Gemma or enter a manual comma-separated word list. Creation supports up to 200 words, subject to the existing 200-card/40-ring collection limits. Gemma generates batches of up to eight cards and can consume provider credits; no AI call is made by approval alone. If generation fails or repeats words, no partial ring is saved. Large sets may take multiple requests to complete.
+
+The created ring opens in the teacher editor. Use **Create picture** on individual cards and approve the pictures before assigning the ring through Classroom. No images are generated automatically. The Requests tab links back to the created ring. Students see the idea’s status and are told when its ring has been assigned. This sends no email or external notification.
+
+## Version 9: spelling and comprehension in Grade 2+ rings
+
+Every Grade 2–5 card now includes **both** activities, in order:
+1. **Spelling:** show an approved picture (or sample emoji clue) without showing the spelling. The student types the word. A wrong spelling plays the existing reading voice and offers Hear the word again; retries are unlimited. Correct spelling advances to the reading passage.
+2. **Reading comprehension:** show a short passage and one or two questions, each with three choices. Wrong choices allow another try. All questions must be answered correctly before the card is earned and Next word unlocks.
+
+The server checks the assigned spelling and answer keys; a successful voice transcription cannot bypass these activities. Spelling ignores letter case and outer whitespace, but does not accept a different spelling, homophone, article prefix, or added punctuation. Component completion and unsuccessful attempts persist across reloads. Earlier kindergarten/Grade 1 read-aloud practice continues as before.
+
+For teachers, choose **Grade 2 or above** when creating cards. Gemma generates a short comprehension passage and questions with each card. **Set up activities / Edit activities** opens a manual editor for the passage, one or two questions, three choices per question, and the correct choice; it also offers explicit Gemma generation followed by review and Save activities. Create and approve the picture clue before assignment. Draft cards missing a picture or valid comprehension content cannot be assigned. Existing Grade 2+ draft cards need activity setup; assignments continue to use snapshots, so edit before assigning or create a new card for changed content.
+
+A card’s saved grade selects its activity mode (currently supported grades K–5). If a ring mixes grades, each card uses its own saved grade. The teacher’s progress chart counts an advanced card only after both components are complete. Activity answers and incorrect-attempt counts are stored locally; typed answers themselves are not stored in the classroom database.
+
+## Grade 4–5 comprehension
+
+New Grade 4 lessons target 100–140 words in two paragraphs, with an inference question and a supporting-evidence question. Grade 5 targets 140–180 words and asks students to evaluate explanations or claims, then select evidence or identify a limitation. Both use three plausible answer choices per question, rather than obvious distractors or simple word identification. Generation rejects passages below 90 words for Grade 4 or 120 for Grade 5 and requires two questions; this structural check does not guarantee question quality, so teacher review still matters.
+
+The Grade 4–5 sample button now provides three longer activities about a garden experiment, a bridge decision, and bird observations, with distinct questions for each grade. Grades 2–3 retain shorter, direct-comprehension activities. Existing saved cards and assigned rings are preserved; regenerate an existing card’s passage through Edit activities to update it.

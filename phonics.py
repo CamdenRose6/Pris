@@ -1,5 +1,7 @@
 """Allowlisted phoneme synthesis; never interpret client-supplied SSML."""
-# Canonical sound IDs used by the browser; ARPAbet is sent only on the server.
+from pathlib import Path
+
+# Canonical sound IDs used by the browser; ARPAbet retained as reference; synthesis uses IPA below.
 SOUNDS = {
     'a':'AE1','e':'EH1','i':'IH1','o':'AA1','u':'AH1',
     'b':'B','d':'D','f':'F','g':'G','h':'HH','j':'JH','k':'K','l':'L','m':'M',
@@ -9,25 +11,52 @@ SOUNDS = {
     'or':'AO1 R','aw':'AO1','ow':'AW1','oy':'OY1','x':'K S','qu':'K W','schwa':'AH0','ul':'AH0 L'
 }
 
-# Stop consonants need an audible release for the requested "cuh/buh/tuh" mode.
-# Speak a phonetic respelling instead of sending an isolated consonant token.
-SPOKEN_SOUNDS = {
-    'k':'kuh', 'b':'buh', 'd':'duh', 'g':'guh', 'j':'juh', 'p':'puh', 't':'tuh'
+# Eleven v4 consumes IPA directly. Keep the entire request to the target sound:
+# no letter names, example words, or spoken coaching.
+# Bare stop-consonant IPA can be spoken as punctuation by the selected voice.
+# Use short audible respellings for b, d, and p.
+# Warm delivery keeps d from taking the dismissive tone of the word “duh”.
+IPA_SOUNDS = {
+    'a':'æ','e':'ɛ','i':'ɪ','o':'ɑ','u':'ʌ',
+    'b':'b','d':'d','f':'f','g':'ɡ','h':'h','j':'dʒ','k':'k','l':'l','m':'m',
+    'n':'n','p':'p','r':'ɹ','s':'s','t':'t','v':'v','w':'w','y':'j','z':'z',
+    'sh':'ʃ','ch':'tʃ','th':'θ','dh':'ð','ng':'ŋ','ee':'iː','ay':'eɪ',
+    'eye':'aɪ','oh':'oʊ','oo':'uː','book':'ʊ','er':'ɝ','ar':'ɑɹ',
+    'or':'ɔɹ','aw':'ɔ','ow':'aʊ','oy':'ɔɪ','x':'ks','qu':'kw',
+    'schwa':'ə','ul':'əl'
 }
-PHONEME_LABELS = {
-    'a':'aah','e':'eh','i':'ih','o':'ah','u':'uh','f':'fff','h':'hhh','l':'lll',
-    'm':'mmm','n':'nnn','r':'rrr','s':'sss','v':'vvv','w':'wuh','y':'yuh','z':'zzz',
-    'sh':'shh','ch':'chuh','th':'thh','dh':'thuh','ng':'ng','ee':'ee','ay':'ay',
-    'eye':'eye','oh':'oh','oo':'oo','book':'uh','er':'er','ar':'ar','or':'or',
-    'aw':'aw','ow':'ow','oy':'oy','x':'ks','qu':'kwuh','schwa':'uh','ul':'ul'
-}
+
+RECORDINGS = Path(__file__).parent / '.wordring' / 'phonics' / 'reviewed'
+BUNDLED_RECORDINGS = Path(__file__).parent / 'assets' / 'phonics'
+
+
+def validate_sound(sound):
+    if not isinstance(sound, str) or sound not in SOUNDS:
+        raise ValueError('Unknown letter sound')
+
+
+def recorded_sound(sound, slow=False):
+    """Only explicitly installed, reviewed MP3s override generated sound audio."""
+    validate_sound(sound)
+    # Separate slow recordings preserve brief stops instead of stretching them.
+    names = [sound + '.slow.mp3', sound + '.mp3'] if slow else [sound + '.mp3']
+    path = next((folder / name for folder in (RECORDINGS, BUNDLED_RECORDINGS) for name in names if (folder / name).is_file()), None)
+    if path is None:
+        return None
+    with path.open('rb') as recording:
+        audio = recording.read(4_000_001)
+    if not audio or len(audio) > 4_000_000:
+        raise ValueError('Invalid reviewed sound recording')
+    return audio
+
 
 def model_for_sound(sound):
-    return 'eleven_multilingual_v2' if sound in SPOKEN_SOUNDS else 'eleven_flash_v2'
+    validate_sound(sound)
+    return 'eleven_v4'
+
 
 def speech_for_sound(sound):
-    if not isinstance(sound,str) or sound not in SOUNDS:
-        raise ValueError('Unknown letter sound')
-    if sound in SPOKEN_SOUNDS:
-        return SPOKEN_SOUNDS[sound]
-    return '<phoneme alphabet="cmu-arpabet" ph="'+SOUNDS[sound]+'">'+PHONEME_LABELS[sound]+'</phoneme>'
+    validate_sound(sound)
+    if sound in ('b', 'd', 'p'):
+        return {'b': 'buh', 'd': '[warmly] duh.', 'p': '[warmly] puh.'}[sound]
+    return '/' + IPA_SOUNDS[sound] + '/'

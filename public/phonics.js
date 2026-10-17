@@ -3,9 +3,9 @@
 (function (root) {
   const sounds = {
     a:['AE1','ă'],e:['EH1','ĕ'],i:['IH1','ĭ'],o:['AA1','ŏ'],u:['AH1','ŭ'],
-    b:['B','buh'],d:['D','duh'],f:['F','f'],g:['G','guh'],h:['HH','h'],j:['JH','juh'],
-    k:['K','kuh'],l:['L','l'],m:['M','m'],n:['N','n'],p:['P','puh'],r:['R','r'],
-    s:['S','s'],t:['T','tuh'],v:['V','v'],w:['W','w'],y:['Y','y'],z:['Z','z'],
+    b:['B','b'],d:['D','d'],f:['F','f'],g:['G','g'],h:['HH','h'],j:['JH','j'],
+    k:['K','k'],l:['L','l'],m:['M','m'],n:['N','n'],p:['P','p'],r:['R','r'],
+    s:['S','s'],t:['T','t'],v:['V','v'],w:['W','w'],y:['Y','y'],z:['Z','z'],
     sh:['SH','sh'],ch:['CH','ch'],th:['TH','th'],dh:['DH','th'],ng:['NG','ng'],
     ee:['IY1','ē'],ay:['EY1','ā'],eye:['AY1','ī'],oh:['OW1','ō'],oo:['UW1','oo'],
     book:['UH1','oo'],er:['ER1','er'],ar:['AA1 R','ar'],or:['AO1 R','or'],
@@ -40,7 +40,28 @@
     my:'m:m y:eye', go:'g:g o:oh', no:'n:n o:oh', so:'s:s o:oh',
     do:'d:d o:oo', put:'p:p u:book t:t', son:'s:s o:u n:n',
     her:'h:h er:er', car:'c:k ar:ar', star:'s:s t:t ar:ar',
-    cow:'c:k ow:ow', toy:'t:t oy:oy'
+    cow:'c:k ow:ow', toy:'t:t oy:oy',
+    // Explicit exceptions, vowel teams, silent consonants, and inflections.
+    have:'h:h a:a v:v e:silent', give:'g:g i:i v:v e:silent',
+    love:'l:l o:u v:v e:silent', come:'c:k o:u m:m e:silent',
+    some:'s:s o:u m:m e:silent', done:'d:d o:u n:n e:silent',
+    said:'s:s ai:e d:d', says:'s:s ay:e s:z', friend:'f:f r:r ie:e n:n d:d',
+    head:'h:h ea:e d:d', bread:'b:b r:r ea:e d:d',
+    eat:'ea:ee t:t', beach:'b:b ea:ee ch:ch', feet:'f:f ee:ee t:t',
+    look:'l:l oo:book k:k', good:'g:g oo:book d:d', food:'f:f oo:oo d:d',
+    out:'ou:ow t:t', house:'h:h ou:ow s:s e:silent', coin:'c:k oi:oy n:n',
+    night:'n:n igh:eye t:t', light:'l:l igh:eye t:t', high:'h:h igh:eye',
+    phone:'ph:f o:oh n:n e:silent', white:'wh:w i:eye t:t e:silent',
+    knee:'k:silent n:n ee:ee', know:'k:silent n:n ow:oh',
+    write:'w:silent r:r i:eye t:t e:silent', lamb:'l:l a:a m:m b:silent',
+    city:'c:s i:i t:t y:ee', gem:'g:j e:e m:m', giant:'g:j i:eye a:schwa n:n t:t',
+    turn:'t:t ur:er n:n', fork:'f:f or:or k:k', corn:'c:k or:or n:n',
+    saw:'s:s aw:aw', draw:'d:d r:r aw:aw',
+    teeth:'t:t ee:ee th:th', with:'w:w i:i th:dh',
+    cats:'c:k a:a t:t s:s', dogs:'d:d o:o g:g s:z',
+    jumped:'j:j u:u m:m p:p ed:t', played:'p:p l:l ay:ay ed:d',
+    wanted:'w:w a:o n:n t:t e:i d:d',
+    about:'a:schwa b:b ou:ow t:t', away:'a:schwa w:w ay:ay'
   };
   for (const [word, groups] of Object.entries(examples)) add(word.toLowerCase(),groups);
   function segments(word) {
@@ -56,7 +77,21 @@
     });
     return result;
   }
-  const api={sounds,words,segments,letters};
+  const examplesForSound = {
+    a:'apple',e:'egg',i:'itch',o:'otter',u:'up',b:'bat',d:'dog',f:'fish',g:'go',
+    h:'hat',j:'jam',k:'cat',l:'leg',m:'moon',n:'net',p:'pig',r:'red',s:'sun',
+    t:'top',v:'vet',w:'wet',y:'yes',z:'zip',sh:'ship',ch:'chip',th:'thin',
+    dh:'this',ng:'ring',ee:'see',ay:'day',eye:'bike',oh:'go',oo:'moon',
+    book:'book',er:'bird',ar:'car',or:'fork',aw:'saw',ow:'cow',oy:'toy',
+    x:'box',qu:'quick',schwa:'about',ul:'apple'
+  };
+  function hint(part, word) {
+    if (!part.sound) return `Letter name: ${part.letter}`;
+    if (part.sound === 'silent') return `The ${part.letters} is silent in ${word}.`;
+    const example = examplesForSound[part.sound];
+    return `${part.letters}: /${sounds[part.sound][1]}/ as in ${example}.`;
+  }
+  const api={sounds,words,segments,letters,hint};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   else root.WordRingPhonics=api;
 })(typeof window!=='undefined'?window:globalThis);

@@ -20,4 +20,11 @@ jobs:
           node --check public/app.js
           node --check public/image-review.js
           node --check public/phonics.js
+          node --check public/reading-flow.js
+          node --check public/reading-recorder.js
+          node --check public/classroom-ui.js
+          node --check public/student-progress.js
+          node --check public/ring-requests.js
+          node --check public/learning-content.js
+          node --check public/activities.js
           node --test tests/*.cjs

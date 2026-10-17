@@ -41,3 +41,17 @@ test('approval never accepts arbitrary URLs', () => {
     assert.equal(review.approvedURL({imageUrl:value,imageApproved:true}),null);
   }
 });
+
+test('emoji choice replaces approved and pending pictures, accepts combined emoji, and rejects words',()=>{
+ for(const emoji of ['🐈','☀️','⚽','👩🏽‍🚀','🇺🇸']){
+  const card={imageUrl:url,imageApproved:true,imageModel:'flux',pendingImageUrl:url,pendingImageModel:'flux'};
+  review.useEmoji(card,emoji);assert.equal(card.emoji,emoji);assert.equal(review.approvedURL(card),null);assert.equal(card.pendingImageUrl,undefined);assert.equal(card.imageModel,undefined);
+ }
+ for(const value of ['','cat','🐈🐕','<img>'])assert.throws(()=>review.useEmoji({},value));
+});
+test('regenerated picture stays pending while the previous approved clue remains available',()=>{
+ const card={imageUrl:url,imageApproved:true};const next='/generated/'+'b'.repeat(64)+'.png';
+ review.stage(card,{imageUrl:next,model:'flux'});assert.equal(review.approvedURL(card),url);
+ review.discard(card);assert.equal(review.approvedURL(card),url);
+ review.stage(card,{imageUrl:next,model:'flux'});review.approve(card);assert.equal(review.approvedURL(card),next);
+});
