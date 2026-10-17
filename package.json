@@ -1,0 +1,1 @@
+{"name":"wordring","private":true,"scripts":{"dev":"python3 server.py","check":"node --check public/app.js"}}
