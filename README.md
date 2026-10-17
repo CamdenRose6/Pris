@@ -19,7 +19,7 @@ On Windows, use `py -3 server.py` if `python3` is unavailable. Open **http://127
 ## What works today
 
 - Default **Read words** tab with one word at a time, card flipping, previous/next controls, and position indicator.
-- Nano Banana 2 illustration generation on each card, with a persistent local image cache.
+- Cloudflare FLUX.1 Schnell illustration generation on each card (optional paid Nano Banana 2 provider), with a persistent local image cache.
 - Whole-word and sentence narration, voice selection, and a slower reading option.
 - ElevenLabs natural speech, with a browser-voice fallback and a server-memory cache of up to 50 clips.
 - Manual word entry, folders, and word/picture/combined library views.
@@ -61,7 +61,7 @@ public/index.html       App layout and dialogs
 public/style.css        Responsive styles
 public/app.js           Cards, reading flow, quizzes, local saving, audio playback
 server.py               Local HTTP server and server-side AI routes
-images.py               Nano Banana 2 adapter and persistent image cache
+images.py               Cloudflare/Google image adapters and persistent cache
 .env.example            Configuration template without secrets
 tests/                  Python tests; provider calls are mocked
 .github/workflows/      Automated Python tests and JavaScript syntax checks
@@ -91,9 +91,11 @@ Python tests make no real provider calls and require no keys. GitHub Actions run
 
 ## Still to build
 
-Nano Banana 2 is implemented; live generation requires a Google image API key. Cards without generated pictures show labeled emoji placeholders. Letter/phoneme audio, speech scoring, accounts, cloud sync, and deployment are not implemented. This is a local development server, not a production server; keep it bound to localhost.
+FLUX.1 Schnell is the default image provider; live generation requires Cloudflare account settings. Paid Nano Banana 2 remains an explicit optional provider. Cards without generated pictures show labeled emoji placeholders. Letter/phoneme audio, speech scoring, accounts, cloud sync, and deployment are not implemented. This is a local development server, not a production server; keep it bound to localhost.
 
-## Nano Banana 2 pictures
+## Optional paid Nano Banana 2 pictures
+
+Set `IMAGE_PROVIDER=google` explicitly before using this paid option.
 
 1. Create a Gemini API key in [Google AI Studio](https://aistudio.google.com/apikey) with access to image generation and any required billing/quota.
 2. Put `GEMINI_API_KEY=your-key` in your local `.env` and restart WordRing.
@@ -103,4 +105,17 @@ The server calls `gemini-3.1-flash-image` through Google's `generateContent` API
 
 Images are saved to ignored `.wordring/images/` files; the card stores only a local URL. Identical prompts reuse saved pictures, including after a restart. Image files and credentials are not in Git. Partners can generate their own pictures. Back up `.wordring/images/` separately if you want to keep local artwork. If files are removed, the card lets you create the picture again. Review generated pictures for accuracy before using them with children.
 
-The adapter is covered by mocked tests. A live image test still needs the local Google key; passing tests does not establish model access or image quality.
+The adapters are covered by mocked tests. A live image test still needs the local Google key; passing tests does not establish model access or image quality.
+
+## Free-tier Cloudflare pictures (default)
+
+WordRing defaults to `IMAGE_PROVIDER=cloudflare` and uses FLUX.1 Schnell. Keep the Cloudflare account on Workers Free to use the daily free allowance with requests stopping at the limit. On a paid Cloudflare plan, usage above the free allocation can be billed; the app does not independently enforce a billing cap. See [Cloudflare pricing](https://developers.cloudflare.com/workers-ai/platform/pricing/).
+
+1. In the Cloudflare dashboard, open **Workers AI → Use REST API**.
+2. Create the Workers AI token using the provided template (Workers AI Read and Edit for the selected account).
+3. Copy the account ID and token into `.env` as `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`.
+4. Leave `IMAGE_PROVIDER=cloudflare`, restart the server, refresh WordRing, and select Create picture.
+
+Codex MCP authorization and WordRing API credentials are separate. Do not copy Codex OAuth tokens into the app. Keep the app token in ignored `.env`. Only the word and illustration prompt are sent to Cloudflare. Generated files reuse the existing local cache; image model metadata is saved with the card. A Cloudflare failure does not trigger any Google request.
+
+The Cloudflare adapter has mocked coverage; live generation awaits local account ID and token configuration.

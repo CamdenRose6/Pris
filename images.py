@@ -1,4 +1,4 @@
-"""Nano Banana 2 adapter and durable, server-local illustration cache."""
+"""Cloudflare FLUX and optional Nano Banana adapters with a durable local cache."""
 import base64
 import binascii
 import hashlib
@@ -11,6 +11,7 @@ import urllib.request
 from pathlib import Path
 
 MODEL = 'gemini-3.1-flash-image'
+FLUX_MODEL = '@cf/black-forest-labs/flux-1-schnell'
 CACHE = Path(__file__).parent / '.wordring' / 'images'
 LOCK = threading.Lock()
 FILE_PATTERN = re.compile(r'[a-f0-9]{64}\.(png|jpg|webp)\Z')
@@ -22,8 +23,19 @@ class ImageError(Exception):
         self.status = status
 
 
+def provider():
+    return os.getenv('IMAGE_PROVIDER', 'cloudflare').strip().lower()
+
+
 def configured():
-    return bool(os.getenv('GEMINI_API_KEY'))
+    if provider() == 'cloudflare':
+        return bool(os.getenv('CLOUDFLARE_ACCOUNT_ID') and os.getenv('CLOUDFLARE_API_TOKEN'))
+    return provider() == 'google' and bool(os.getenv('GEMINI_API_KEY'))
+
+
+def provider_label():
+    return 'FLUX.1 Schnell' if provider() == 'cloudflare' else 'Nano Banana 2'
+
 
 
 def image_prompt(data):
@@ -76,30 +88,56 @@ def decode_image(result):
 
 def generate(data):
     prompt = image_prompt(data)
-    digest = hashlib.sha256((MODEL + prompt).encode()).hexdigest()
+    selected = provider()
+    if selected not in ('cloudflare', 'google'):
+        raise ImageError('Set IMAGE_PROVIDER to cloudflare or google.', 503)
+    model = FLUX_MODEL if selected == 'cloudflare' else MODEL
+    digest = hashlib.sha256((model + prompt).encode()).hexdigest()
     # Serialize cache checks/generation so repeat clicks do not make duplicate calls.
     with LOCK:
         for extension in ('png', 'jpg', 'webp'):
             path = CACHE / (digest + '.' + extension)
             if path.is_file():
-                return {'imageUrl': '/generated/' + path.name, 'model': MODEL, 'cached': True}
+                return {'imageUrl': '/generated/' + path.name, 'model': model, 'provider': selected, 'cached': True}
         if not configured():
-            raise ImageError('Add GEMINI_API_KEY to your local .env file and restart WordRing to create pictures.', 503)
-        payload = {
-            'contents': [{'parts': [{'text': prompt}]}],
-            'generationConfig': {'responseModalities': ['TEXT', 'IMAGE'],
-                                 'imageConfig': {'aspectRatio': '1:1', 'imageSize': '1K'}}
-        }
-        request = urllib.request.Request(
-            'https://generativelanguage.googleapis.com/v1beta/models/' + MODEL + ':generateContent',
-            data=json.dumps(payload).encode(),
-            headers={'x-goog-api-key': os.environ['GEMINI_API_KEY'], 'Content-Type': 'application/json'})
+            raise ImageError('Add CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN to .env and restart WordRing.' if selected == 'cloudflare' else 'Add GEMINI_API_KEY to .env and restart WordRing.', 503)
+        if selected == 'google':
+            payload = {
+                'contents': [{'parts': [{'text': prompt}]}],
+                'generationConfig': {'responseModalities': ['TEXT', 'IMAGE'],
+                                     'imageConfig': {'aspectRatio': '1:1', 'imageSize': '1K'}}
+            }
+            request = urllib.request.Request(
+                'https://generativelanguage.googleapis.com/v1beta/models/' + MODEL + ':generateContent',
+                data=json.dumps(payload).encode(),
+                headers={'x-goog-api-key': os.environ['GEMINI_API_KEY'], 'Content-Type': 'application/json'})
+        if selected == 'cloudflare':
+            account = os.environ['CLOUDFLARE_ACCOUNT_ID']
+            if not re.fullmatch(r'[a-fA-F0-9]{32}', account):
+                raise ImageError('Check CLOUDFLARE_ACCOUNT_ID: expected a 32-character account ID.', 503)
+            if len(prompt) > 2048:
+                raise ImageError('Use a shorter word or illustration prompt.', 400)
+            request = urllib.request.Request(
+                'https://api.cloudflare.com/client/v4/accounts/' + account + '/ai/run/' + FLUX_MODEL,
+                data=json.dumps({'prompt':prompt, 'steps':4}).encode(),
+                headers={'Authorization':'Bearer ' + os.environ['CLOUDFLARE_API_TOKEN'], 'Content-Type':'application/json'})
         try:
             with urllib.request.urlopen(request, timeout=90) as response:
                 body = response.read(16_000_001)
             if len(body) > 16_000_000:
                 raise ImageError('The image response was too large. Please try again.')
-            raw, extension = decode_image(json.loads(body))
+            result = json.loads(body)
+            if selected == 'cloudflare':
+                if result.get('success') is False:
+                    raise ImageError('Cloudflare could not create the picture. Check account access and quota.')
+                encoded = result.get('result', {}).get('image')
+                try:
+                    decoded = base64.b64decode(encoded, validate=True)
+                except (ValueError, TypeError, binascii.Error):
+                    raise ImageError('Cloudflare returned an unreadable picture.')
+                mime = 'image/png' if decoded.startswith(b'\x89PNG') else 'image/jpeg'
+                result = {'candidates':[{'content':{'parts':[{'inlineData':{'mimeType':mime,'data':encoded}}]}}]}
+            raw, extension = decode_image(result)
         except urllib.error.HTTPError as error:
             messages = {
                 400: 'Google rejected the image request. Check your image key and model access.',
@@ -108,7 +146,13 @@ def generate(data):
                 404: 'Nano Banana 2 is unavailable for this Google project.',
                 429: 'Google image quota is exhausted or busy. Check billing and quota, then try later.'
             }
-            raise ImageError(messages.get(error.code, 'Google image generation is unavailable. Please try again.')) from None
+            if selected == 'cloudflare':
+                messages = {
+                    401:'Cloudflare rejected the API token. Check CLOUDFLARE_API_TOKEN.',
+                    403:'Cloudflare access denied. The token needs Workers AI access for this account.',
+                    429:'Cloudflare free allowance or rate limit reached. Try later; no paid fallback was used.'
+                }
+            raise ImageError(messages.get(error.code, 'Image generation is unavailable. Check the selected provider and try again.')) from None
         except (urllib.error.URLError, TimeoutError):
             raise ImageError('Image generation timed out or could not connect. Please try again.') from None
         except (ValueError, KeyError, TypeError, AttributeError):
@@ -118,4 +162,4 @@ def generate(data):
         temporary = path.with_suffix('.tmp')
         temporary.write_bytes(raw)
         temporary.replace(path)
-        return {'imageUrl': '/generated/' + path.name, 'model': MODEL, 'cached': False}
+        return {'imageUrl': '/generated/' + path.name, 'model': model, 'provider': selected, 'cached': False}

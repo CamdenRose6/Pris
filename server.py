@@ -13,7 +13,8 @@ def load_local_settings():
     if not settings.exists():
         return
     allowed = {'GEMMA_API_URL', 'GEMMA_API_KEY', 'GEMMA_MODEL',
-               'ELEVENLABS_API_KEY', 'ELEVENLABS_VOICE_ID', 'GEMINI_API_KEY'}
+               'ELEVENLABS_API_KEY', 'ELEVENLABS_VOICE_ID', 'GEMINI_API_KEY',
+               'IMAGE_PROVIDER', 'CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_API_TOKEN'}
     for line in settings.read_text().splitlines():
         line = line.strip()
         if not line or line.startswith('#') or '=' not in line:
@@ -86,7 +87,7 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == '/api/status':
-            return self.reply(200, {'gemma': gemma_configured(), 'naturalSpeech': speech_configured(), 'imageGeneration': images.configured()})
+            return self.reply(200, {'gemma': gemma_configured(), 'naturalSpeech': speech_configured(), 'imageGeneration': images.configured(), 'imageProvider': images.provider(), 'imageLabel': images.provider_label()})
         if self.path.startswith('/generated/'):
             filename = self.path.removeprefix('/generated/')
             if not images.FILE_PATTERN.fullmatch(filename):

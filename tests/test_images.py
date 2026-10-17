@@ -36,12 +36,12 @@ class ImageTests(unittest.TestCase):
                 with self.assertRaises(images.ImageError): images.generate(data)
             provider.assert_not_called()
 
-    @patch.dict('os.environ', {'GEMINI_API_KEY':'test-only'})
+    @patch.dict('os.environ', {'GEMINI_API_KEY':'test-only','IMAGE_PROVIDER':'google'})
     def test_image_is_saved_and_reused_without_api_key(self):
         with patch('urllib.request.urlopen') as provider:
             provider.return_value.__enter__.return_value.read.return_value=json.dumps(self.provider_result()).encode()
             first=images.generate({'word':'cat'})
-            with patch.dict('os.environ', {}, clear=True):
+            with patch.dict('os.environ', {'IMAGE_PROVIDER':'google'}, clear=True):
                 second=images.generate({'word':'cat'})
             self.assertFalse(first['cached'])
             self.assertTrue(second['cached'])
@@ -61,7 +61,7 @@ class ImageTests(unittest.TestCase):
         result['candidates'][0]['content']['parts'][0]['inlineData']['data']=base64.b64encode(b'not an image').decode()
         with self.assertRaises(images.ImageError): images.decode_image(result)
 
-    @patch.dict('os.environ', {'GEMINI_API_KEY':'test-only'})
+    @patch.dict('os.environ', {'GEMINI_API_KEY':'test-only','IMAGE_PROVIDER':'google'})
     def test_quota_error_is_actionable_and_not_cached(self):
         with patch('urllib.request.urlopen',side_effect=urllib.error.HTTPError('https://example.com',429,'quota',{},None)):
             with self.assertRaisesRegex(images.ImageError,'quota'):

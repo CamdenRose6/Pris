@@ -1,5 +1,6 @@
 const $ = id => document.getElementById(id);
-let imageGeneration = false;
+let imageGeneration = false, imageLabel = 'FLUX.1 Schnell';
+function cardImageLabel(card){return card.imageModel?.includes('flux-1-schnell')?'FLUX.1 Schnell':card.imageModel?'Nano Banana 2':'AI illustration';}
 const imageJobs = new Map(), brokenImages = new Set();
 function cardImageURL(card){return typeof card.imageUrl==='string' && /^\/generated\/[a-f0-9]{64}\.(png|jpg|webp)$/.test(card.imageUrl)&&!brokenImages.has(card.imageUrl)?card.imageUrl:null;}
 
@@ -30,7 +31,7 @@ function render() {
  $('cards').innerHTML=cards.length?'':'<div class="empty">Your next discovery belongs here.<br>Create a word set to get started.</div>';
  cards.forEach((card,i)=>{
   const el=document.createElement('article');el.className='card';el.style.setProperty('--tint',['#f2e9d9','#e9eee0','#f7e7df','#e7efdf','#f9efd1','#eae6f1'][i%6]);
-  el.innerHTML=`${view!=='word'?`<div class="picture" aria-label="${view==='picture'?'Vocabulary illustration':escapeHTML(card.word)+' illustration'}">${cardImageURL(card)?`<img class="card-illustration" src="${cardImageURL(card)}" alt="${view==='picture'?'Word picture clue':escapeHTML(card.word)+' illustration'}">`:`<span aria-hidden="true">${escapeHTML(card.emoji||'✦')}</span>`}<small>${cardImageURL(card)?'Nano Banana 2':card.emoji?'Emoji placeholder':'Image pending'}</small></div>`:''}<div class="card-body"><div class="word-line"><h3>${view==='picture'?'Mystery word':escapeHTML(card.word)}</h3><button class="speak" aria-label="Hear ${view==='picture'?'word':escapeHTML(card.word)}">◖))</button></div>${view!=='picture'?`<p class="definition">${escapeHTML(card.definition)}</p><div class="sentence">${escapeHTML(card.sentence)}</div>`:'<p class="definition">Look at the picture. Can you name it?<br>Tap the speaker for a clue.</p>'}<div class="card-bottom"><span>${card.source==='gemma'?'✦ Gemma lesson':card.source==='manual'?'Your word':'Sample lesson'}</span><button class="make-picture" ${imageJobs.has(card.id)?'disabled':''}>${imageJobs.has(card.id)?'Creating…':cardImageURL(card)?'Picture saved':'Create picture'}</button><button class="delete" aria-label="Delete ${escapeHTML(card.word)}">Remove</button></div></div>`;
+  el.innerHTML=`${view!=='word'?`<div class="picture" aria-label="${view==='picture'?'Vocabulary illustration':escapeHTML(card.word)+' illustration'}">${cardImageURL(card)?`<img class="card-illustration" src="${cardImageURL(card)}" alt="${view==='picture'?'Word picture clue':escapeHTML(card.word)+' illustration'}">`:`<span aria-hidden="true">${escapeHTML(card.emoji||'✦')}</span>`}<small>${cardImageURL(card)?escapeHTML(cardImageLabel(card)):card.emoji?'Emoji placeholder':'Image pending'}</small></div>`:''}<div class="card-body"><div class="word-line"><h3>${view==='picture'?'Mystery word':escapeHTML(card.word)}</h3><button class="speak" aria-label="Hear ${view==='picture'?'word':escapeHTML(card.word)}">◖))</button></div>${view!=='picture'?`<p class="definition">${escapeHTML(card.definition)}</p><div class="sentence">${escapeHTML(card.sentence)}</div>`:'<p class="definition">Look at the picture. Can you name it?<br>Tap the speaker for a clue.</p>'}<div class="card-bottom"><span>${card.source==='gemma'?'✦ Gemma lesson':card.source==='manual'?'Your word':'Sample lesson'}</span><button class="make-picture" ${imageJobs.has(card.id)?'disabled':''}>${imageJobs.has(card.id)?'Creating…':cardImageURL(card)?'Picture saved':'Create picture'}</button><button class="delete" aria-label="Delete ${escapeHTML(card.word)}">Remove</button></div></div>`;
   el.querySelector('.make-picture').onclick=()=>createCardPicture(card);
   const img=el.querySelector('.card-illustration');if(img)img.onerror=()=>markMissingPicture(card,img);
   el.querySelector('.speak').onclick=()=>speak(card.word);
@@ -122,7 +123,7 @@ $('openCreate').onclick=()=>{$('createError').textContent='';$('createDialog').s
 $('newFolder').onclick=()=>{const name=prompt('Name your new folder');if(!name?.trim())return;const value=name.trim().slice(0,50);if(state.folders.includes(value))return toast('That folder already exists.');state.folders.push(value);activeFolder=value;save();readingIndex=0;showReading();};
 document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{view=b.dataset.view;document.querySelectorAll('[data-view]').forEach(x=>x.classList.toggle('selected',x===b));render();});
 $('practiceNav').onclick=beginPractice;$('libraryNav').onclick=showLibrary;$('back').onclick=showLibrary;
-showReading();fetch('/api/status').then(r=>r.json()).then(s=>{gemmaConnected=s.gemma;naturalSpeech=!!s.naturalSpeech;imageGeneration=!!s.imageGeneration;refreshVoices();updateImageControls();$('connection').textContent=s.gemma?'✦ Gemma connected':'◌ Sample mode · Gemma not connected';if(!s.gemma)$('generate').textContent='Add my words';}).catch(()=>{$('connection').textContent='◌ Offline · Sample mode';$('generate').textContent='Add my words';});
+showReading();fetch('/api/status').then(r=>r.json()).then(s=>{gemmaConnected=s.gemma;naturalSpeech=!!s.naturalSpeech;imageGeneration=!!s.imageGeneration;imageLabel=s.imageLabel||'AI illustration';refreshVoices();updateImageControls();$('connection').textContent=s.gemma?'✦ Gemma connected':'◌ Sample mode · Gemma not connected';if(!s.gemma)$('generate').textContent='Add my words';}).catch(()=>{$('connection').textContent='◌ Offline · Sample mode';$('generate').textContent='Add my words';});
 
 function setTab(name) {
  activeTab=name;
@@ -183,7 +184,7 @@ function updateImageControls(){
  const busy=card&&imageJobs.has(card.id);
  $('createPicture').disabled=!card||busy||!!cardImageURL(card);
  $('createPicture').textContent=busy?'Creating your picture…':card&&cardImageURL(card)?'✓ Picture saved':'✦ Create picture';
- $('imageStatus').textContent=busy?'Your word is becoming a picture. This may take a minute.':card&&cardImageURL(card)?'Nano Banana 2 illustration · Flip the card to see it.':imageGeneration?'Create a picture clue for this word.':'Picture generation needs a Google API key.';
+ $('imageStatus').textContent=busy?'Your word is becoming a picture. This may take a minute.':card&&cardImageURL(card)?`${cardImageLabel(card)} illustration · Flip the card to see it.`:imageGeneration?'Create a picture clue for this word.':`Connect ${imageLabel} to create pictures.`;
 }
 function markMissingPicture(card,img){
  if(!card.imageUrl||brokenImages.has(card.imageUrl))return;
@@ -192,7 +193,7 @@ function markMissingPicture(card,img){
 }
 async function createCardPicture(card){
  if(imageJobs.has(card.id)||cardImageURL(card))return;
- if(!imageGeneration)return toast('Add GEMINI_API_KEY to .env and restart WordRing to create pictures.');
+ if(!imageGeneration)return toast('Configure the image provider in .env and restart WordRing to create pictures.');
  const controller=new AbortController();imageJobs.set(card.id,controller);
  render();if(activeTab==='reading')updateImageControls();
  const timeout=setTimeout(()=>controller.abort(),100000);
@@ -200,7 +201,7 @@ async function createCardPicture(card){
   const response=await fetch('/api/image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({word:card.word,imagePrompt:card.imagePrompt||''}),signal:controller.signal});
   const result=await response.json();if(!response.ok)throw Error(result.error||'Could not create a picture.');
   if(!/^\/generated\/[a-f0-9]{64}\.(png|jpg|webp)$/.test(result.imageUrl))throw Error('An invalid picture was returned.');
-  if(state.cards.some(c=>c.id===card.id)){card.imageUrl=result.imageUrl;brokenImages.delete(result.imageUrl);save();toast('Your picture is ready. Flip the word card to see it.');}
+  if(state.cards.some(c=>c.id===card.id)){card.imageUrl=result.imageUrl;card.imageModel=result.model;brokenImages.delete(result.imageUrl);save();toast('Your picture is ready. Flip the word card to see it.');}
  }catch(error){toast(error.name==='TimeoutError'||error.name==='AbortError'?'Picture generation took too long. Try again shortly.':error.message);}
  finally{clearTimeout(timeout);imageJobs.delete(card.id);render();if(activeTab==='reading')renderReading();}
 }
