@@ -25,7 +25,7 @@ On Windows, use `py -3 server.py` if `python3` is unavailable. Open **http://127
 - Manual word entry, folders, and word/picture/combined library views.
 - Sample quizzes with hints and retry feedback.
 - Browser-local saving of cards and voice preferences.
-- A server adapter for Gemma through an OpenAI-compatible chat completions endpoint; the live Gemma connection still needs configuring and testing.
+- Live Gemma 4 lesson generation through Google’s Gemini API, plus an optional OpenAI-compatible provider adapter.
 
 ## Optional AI configuration
 
@@ -35,7 +35,7 @@ Copy `.env.example` to `.env` in the project root (`cp .env.example .env` on mac
 | --- | --- |
 | `ELEVENLABS_API_KEY` | Your ElevenLabs key with Text to Speech access |
 | `ELEVENLABS_VOICE_ID` | ID of a voice your account can use through the API |
-| `GEMINI_API_KEY` | Google AI Studio key with Nano Banana 2 access |
+| `GEMINI_API_KEY` | Google AI Studio key for Gemma 4; also used for optional paid Nano Banana 2 images |
 | `GEMMA_API_URL` | Full OpenAI-compatible chat completions URL for your Gemma provider |
 | `GEMMA_API_KEY` | Key for that provider |
 | `GEMMA_MODEL` | Exact Gemma model ID from that provider |
@@ -50,7 +50,7 @@ Only the requested word or sentence is sent to ElevenLabs. Generation can incur 
 
 ### Gemma
 
-Gemma is intended to generate grade-level vocabulary, definitions, example sentences, image prompts, quiz questions, and hints. The server validates the response structure. Adults still need to review instructional accuracy. The fixed sample set does **not** change with the grade selector.
+Gemma generates grade-level vocabulary, definitions, example sentences, image prompts, quiz questions, and hints. With `GEMINI_API_KEY` set, WordRing uses `gemma-4-26b-a4b-it` through the same Google API used by the [organizers’ demo](https://hack-days-gemma-mlh.pages.dev/). No additional Gemma settings are needed. Google currently lists Gemma input/output as free, subject to quota; image generation is separate and paid. An explicit complete `GEMMA_API_URL`, `GEMMA_API_KEY`, and `GEMMA_MODEL` configuration overrides the Google adapter. A kindergarten pet lesson was successfully tested through the live endpoint. The server validates the response structure. Adults still need to review instructional accuracy. The fixed sample set does **not** change with the grade selector.
 
 **Never commit `.env` or put keys in browser code.** Each partner should use their own credentials or receive authorized shared credentials through a private channel. Credentials are deliberately absent from this repository.
 
@@ -85,7 +85,7 @@ Python tests make no real provider calls and require no keys. GitHub Actions run
 - **Port already in use:** stop the other WordRing terminal with Ctrl+C, then start again.
 - **Old interface or voice:** refresh the browser after changes. Restart the Python server after changing `.env` or `server.py`.
 - **Voice falls back to device:** check both ElevenLabs settings, key permissions, available credits, and whether your selected voice is permitted for API use.
-- **Gemma not connected:** all three Gemma settings must be filled; the endpoint must serve the specified Gemma model using the expected API format.
+- **Gemma not connected:** set `GEMINI_API_KEY` and restart. For an alternate compatible provider, set all three `GEMMA_*` variables. A quota or permission failure is shown in the create dialog.
 - **Cards differ between computers:** data is saved in each browser's localStorage, not in Git or a shared database. Do not clear site data unless you want to discard local cards.
 - **No audio:** press a playback button first, check device volume, or choose a different device voice.
 

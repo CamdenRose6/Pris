@@ -35,18 +35,18 @@ Accepts 1–600 characters. Returns MP3 bytes (`audio/mpeg`) from ElevenLabs usi
 
 Request: `{ "grade": "2", "topic": "Animals", "words": "cat, bird" }`. `words` is optional.
 
-Returns `{ "cards": [...], "source": "gemma" }`. The server requests structured JSON from the configured OpenAI-compatible provider, reads `choices[0].message.content`, and validates 1–8 cards. Required fields are `word`, `definition`, `sentence`, `imagePrompt`, `hint`, and a three-choice `quiz`. Missing configuration returns 503; invalid model output or provider failure returns 502.
+Returns `{ "cards": [...], "source": "gemma" }`. The server requests JSON from Google Gemma 4 by default, extracts non-thought text from candidates, and validates 1–8 cards. The alternate compatible adapter reads `choices[0].message.content`. Required fields are `word`, `definition`, `sentence`, `imagePrompt`, `hint`, and a three-choice `quiz`. Missing configuration returns 503; invalid model output or provider failure returns 502.
 
 ## Integration status
 
 - **ElevenLabs:** real narration was successfully tested on the owner's local configuration. Partner clones require their own authorized settings. Do not assume the owner's key is included.
-- **Gemma:** adapter implemented; live provider configuration and real lesson generation still need verification.
+- **Gemma:** live Google Gemma 4 (`gemma-4-26b-a4b-it`) lesson generation verified with a kindergarten pet set. Uses `GEMINI_API_KEY` by default. A complete explicit `GEMMA_*` compatible-provider configuration takes precedence. Google responses must finish with STOP; thought parts are excluded before parsing/validation.
 - **Images:** Nano Banana 2 adapter and both card views are implemented. Set `GEMINI_API_KEY` locally for a live test. `images.py` persists files under ignored `.wordring/images/`; browser cards store an optional `imageUrl`. Tests mock Google; live image generation remains to be verified.
 
 ## Next milestones
 
 1. Confirm chosen narration voice on short words and sentences; review pronunciation with the team.
-2. Connect the team's Gemma endpoint and verify grade-appropriate responses against the schema.
+2. Review generated reading sets for grade appropriateness; test a range of grades and custom words.
 3. Configure the Google image key, run a real illustration, and review content and visual quality.
 4. Review sample content for beginning readers and assemble a short end-to-end demo.
 
