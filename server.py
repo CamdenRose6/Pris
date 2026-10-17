@@ -169,7 +169,7 @@ class Handler(SimpleHTTPRequestHandler):
             speed = .85 if data.get('slow') is True else .95
             voice = os.environ['ELEVENLABS_VOICE_ID']
             # Multilingual v2 does not support SSML phonemes. Flash v2 does.
-            model = 'eleven_flash_v2' if sound is not None else 'eleven_multilingual_v2'
+            model = phonics.model_for_sound(sound) if sound is not None else 'eleven_multilingual_v2'
             key = (voice, model, text, speed)
             with AUDIO_LOCK:
                 audio = AUDIO_CACHE.get(key)

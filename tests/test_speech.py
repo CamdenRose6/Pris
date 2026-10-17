@@ -48,7 +48,7 @@ class SpeechTests(unittest.TestCase):
         AUDIO_CACHE.clear()
 
     @patch.dict('os.environ', {'ELEVENLABS_API_KEY':'test', 'ELEVENLABS_VOICE_ID':'test'})
-    def test_letter_sounds_use_a_phoneme_capable_model(self):
+    def test_c_uses_audible_kuh_instead_of_letter_name(self):
         AUDIO_CACHE.clear()
         with patch('urllib.request.urlopen') as provider:
             provider.return_value.__enter__.return_value.read.return_value = b'test-mp3'
@@ -56,9 +56,21 @@ class SpeechTests(unittest.TestCase):
             handler.create_speech()
             self.assertEqual(handler.status,200)
             payload=json.loads(provider.call_args.args[0].data)
+            self.assertEqual(payload['model_id'],'eleven_multilingual_v2')
+            self.assertEqual(payload['text'],'kuh')
+        AUDIO_CACHE.clear()
+
+    @patch.dict('os.environ', {'ELEVENLABS_API_KEY':'test', 'ELEVENLABS_VOICE_ID':'test'})
+    def test_vowel_uses_explicit_phoneme(self):
+        AUDIO_CACHE.clear()
+        with patch('urllib.request.urlopen') as provider:
+            provider.return_value.__enter__.return_value.read.return_value = b'test-mp3'
+            handler = self.handler({'sound':'a','text':'a'})
+            handler.create_speech()
+            payload=json.loads(provider.call_args.args[0].data)
             self.assertEqual(payload['model_id'],'eleven_flash_v2')
-            self.assertIn('ph="K"',payload['text'])
-            self.assertNotIn('>c<',payload['text'])
+            self.assertIn('ph="AE1"',payload['text'])
+            self.assertNotIn('>sound<',payload['text'])
         AUDIO_CACHE.clear()
 
     @patch.dict('os.environ', {'ELEVENLABS_API_KEY':'test', 'ELEVENLABS_VOICE_ID':'test'})

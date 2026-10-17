@@ -89,7 +89,7 @@ function speakOnDevice(text, request){
 async function speak(text, options={}){
  stopSpeech();const request=speechRequest;
  if(options.buttons)options.buttons.forEach(button=>button.classList.add('is-speaking'));
- const fallback=()=>{if(options.sound)$('letterFeedback').textContent='Letter name: '+text+'. Sound audio is unavailable right now.';speakOnDevice(text,request);};
+ const fallback=()=>{if(options.sound){$('letterFeedback').textContent='Sound audio is unavailable. Try again or use Hear the word.';document.querySelectorAll('.letter-button.is-speaking').forEach(button=>button.classList.remove('is-speaking'));return;}speakOnDevice(text,request);};
  if(!naturalSpeech||(!options.sound&&$('voiceSelect').value!=='auto')){fallback();return;}
  const controller=new AbortController();speechController=controller;$('readAloud').setAttribute('aria-busy','true');updateVoiceStatus('Getting your reading voice ready…');
  const timeout=setTimeout(()=>controller.abort(),35000);
@@ -102,7 +102,7 @@ async function speak(text, options={}){
   playingAudio.onerror=()=>{if(request===speechRequest){stopSpeech();updateVoiceStatus('Audio could not play. Please try again.');}};
   await playingAudio.play();if(request!==speechRequest)return;
   $('readAloud').classList.add('speaking');updateVoiceStatus('Reading…');
- }catch(error){if(request!==speechRequest)return;updateVoiceStatus('Natural voice unavailable. Using your device voice.');toast(options.sound?'Sound audio is unavailable. Playing the letter name.':'Using your device voice for now.');fallback();}
+ }catch(error){if(request!==speechRequest)return;updateVoiceStatus('Natural voice unavailable. Using your device voice.');toast(options.sound?'Sound audio is unavailable. Please try again.':'Using your device voice for now.');fallback();}
  finally{clearTimeout(timeout);if(request===speechRequest){speechController=null;$('readAloud').removeAttribute('aria-busy');}}
 }
 $('voiceSelect').onchange=()=>{stopSpeech();voicePreference=$('voiceSelect').value;try{localStorage.setItem('wordring-voice',voicePreference);}catch{}updateVoiceStatus();};

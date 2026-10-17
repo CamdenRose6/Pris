@@ -9,7 +9,25 @@ SOUNDS = {
     'or':'AO1 R','aw':'AO1','ow':'AW1','oy':'OY1','x':'K S','qu':'K W','schwa':'AH0','ul':'AH0 L'
 }
 
+# Stop consonants need an audible release for the requested "cuh/buh/tuh" mode.
+# Speak a phonetic respelling instead of sending an isolated consonant token.
+SPOKEN_SOUNDS = {
+    'k':'kuh', 'b':'buh', 'd':'duh', 'g':'guh', 'j':'juh', 'p':'puh', 't':'tuh'
+}
+PHONEME_LABELS = {
+    'a':'aah','e':'eh','i':'ih','o':'ah','u':'uh','f':'fff','h':'hhh','l':'lll',
+    'm':'mmm','n':'nnn','r':'rrr','s':'sss','v':'vvv','w':'wuh','y':'yuh','z':'zzz',
+    'sh':'shh','ch':'chuh','th':'thh','dh':'thuh','ng':'ng','ee':'ee','ay':'ay',
+    'eye':'eye','oh':'oh','oo':'oo','book':'uh','er':'er','ar':'ar','or':'or',
+    'aw':'aw','ow':'ow','oy':'oy','x':'ks','qu':'kwuh','schwa':'uh','ul':'ul'
+}
+
+def model_for_sound(sound):
+    return 'eleven_multilingual_v2' if sound in SPOKEN_SOUNDS else 'eleven_flash_v2'
+
 def speech_for_sound(sound):
     if not isinstance(sound,str) or sound not in SOUNDS:
         raise ValueError('Unknown letter sound')
-    return '<phoneme alphabet="cmu-arpabet" ph="'+SOUNDS[sound]+'">sound</phoneme>'
+    if sound in SPOKEN_SOUNDS:
+        return SPOKEN_SOUNDS[sound]
+    return '<phoneme alphabet="cmu-arpabet" ph="'+SOUNDS[sound]+'">'+PHONEME_LABELS[sound]+'</phoneme>'

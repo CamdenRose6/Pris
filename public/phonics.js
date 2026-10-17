@@ -3,9 +3,9 @@
 (function (root) {
   const sounds = {
     a:['AE1','ă'],e:['EH1','ĕ'],i:['IH1','ĭ'],o:['AA1','ŏ'],u:['AH1','ŭ'],
-    b:['B','b'],d:['D','d'],f:['F','f'],g:['G','g'],h:['HH','h'],j:['JH','j'],
-    k:['K','k'],l:['L','l'],m:['M','m'],n:['N','n'],p:['P','p'],r:['R','r'],
-    s:['S','s'],t:['T','t'],v:['V','v'],w:['W','w'],y:['Y','y'],z:['Z','z'],
+    b:['B','buh'],d:['D','duh'],f:['F','f'],g:['G','guh'],h:['HH','h'],j:['JH','juh'],
+    k:['K','kuh'],l:['L','l'],m:['M','m'],n:['N','n'],p:['P','puh'],r:['R','r'],
+    s:['S','s'],t:['T','tuh'],v:['V','v'],w:['W','w'],y:['Y','y'],z:['Z','z'],
     sh:['SH','sh'],ch:['CH','ch'],th:['TH','th'],dh:['DH','th'],ng:['NG','ng'],
     ee:['IY1','ē'],ay:['EY1','ā'],eye:['AY1','ī'],oh:['OW1','ō'],oo:['UW1','oo'],
     book:['UH1','oo'],er:['ER1','er'],ar:['AA1 R','ar'],or:['AO1 R','or'],
