@@ -118,4 +118,4 @@ WordRing defaults to `IMAGE_PROVIDER=cloudflare` and uses FLUX.1 Schnell. Keep t
 
 Codex MCP authorization and WordRing API credentials are separate. Do not copy Codex OAuth tokens into the app. Keep the app token in ignored `.env`. Only the word and illustration prompt are sent to Cloudflare. Generated files reuse the existing local cache; image model metadata is saved with the card. A Cloudflare failure does not trigger any Google request.
 
-The Cloudflare adapter has mocked coverage; live generation awaits local account ID and token configuration.
+The Cloudflare adapter has mocked coverage, and live FLUX generation has been verified with the owner’s local credentials. Partner clones still require their own authorized account ID and API token.
