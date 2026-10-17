@@ -118,7 +118,7 @@ class ClassroomTests(unittest.TestCase):
         raw=json.dumps(data).encode();handler=server.Handler.__new__(server.Handler)
         handler.path=path;handler.client_address=('127.0.0.1',1234)
         handler.headers={'Content-Length':str(len(raw)),'Content-Type':'application/json','Host':'127.0.0.1:8765','Origin':origin,'Cookie':'wordring_session='+token}
-        
+
         if token:
             user=self.store.user(token)
             if user:handler.headers['X-WordRing-User']=user['id']
