@@ -16,4 +16,7 @@ jobs:
       - name: Python tests (no API keys required)
         run: python -m unittest discover -s tests
       - name: JavaScript syntax
-        run: node --check public/app.js
+        run: |
+          node --check public/app.js
+          node --check public/image-review.js
+          node --test tests/test_image_review.cjs

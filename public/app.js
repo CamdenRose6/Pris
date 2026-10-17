@@ -2,7 +2,8 @@ const $ = id => document.getElementById(id);
 let imageGeneration = false, imageLabel = 'FLUX.1 Schnell';
 function cardImageLabel(card){return card.imageModel?.includes('flux-1-schnell')?'FLUX.1 Schnell':card.imageModel?'Nano Banana 2':'AI illustration';}
 const imageJobs = new Map(), brokenImages = new Set();
-function cardImageURL(card){return typeof card.imageUrl==='string' && /^\/generated\/[a-f0-9]{64}\.(png|jpg|webp)$/.test(card.imageUrl)&&!brokenImages.has(card.imageUrl)?card.imageUrl:null;}
+function cardImageURL(card){const url=WordRingImages.approvedURL(card);return url&&!brokenImages.has(url)?url:null;}
+let reviewingCardId=null, reviewLoaded=false;
 
 const samples = [
  ['cat','🐈','A small, furry animal that often lives with people.','The cat sleeps in the sun.','It says meow.','Which animal says meow?',['bird','cat','frog'],1],
@@ -15,6 +16,7 @@ const samples = [
 let state;
 try { state = JSON.parse(localStorage.getItem('wordring-v1')); } catch {}
 if (!state || !Array.isArray(state.cards) || !Array.isArray(state.folders)) state = {cards:samples.map(c=>({...c,id:crypto.randomUUID()})),folders:['Nature explorers','My favorite words']};
+if(WordRingImages.migrate(state.cards))save();
 let readingIndex = 0, readingFlipped = false, activeTab = 'reading';
 let activeFolder = '', view = 'both', queue = [], questionIndex = 0, solved = false, firstTry = true, score = 0;
 const escapeHTML = value => String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -31,8 +33,8 @@ function render() {
  $('cards').innerHTML=cards.length?'':'<div class="empty">Your next discovery belongs here.<br>Create a word set to get started.</div>';
  cards.forEach((card,i)=>{
   const el=document.createElement('article');el.className='card';el.style.setProperty('--tint',['#f2e9d9','#e9eee0','#f7e7df','#e7efdf','#f9efd1','#eae6f1'][i%6]);
-  el.innerHTML=`${view!=='word'?`<div class="picture" aria-label="${view==='picture'?'Vocabulary illustration':escapeHTML(card.word)+' illustration'}">${cardImageURL(card)?`<img class="card-illustration" src="${cardImageURL(card)}" alt="${view==='picture'?'Word picture clue':escapeHTML(card.word)+' illustration'}">`:`<span aria-hidden="true">${escapeHTML(card.emoji||'✦')}</span>`}<small>${cardImageURL(card)?escapeHTML(cardImageLabel(card)):card.emoji?'Emoji placeholder':'Image pending'}</small></div>`:''}<div class="card-body"><div class="word-line"><h3>${view==='picture'?'Mystery word':escapeHTML(card.word)}</h3><button class="speak" aria-label="Hear ${view==='picture'?'word':escapeHTML(card.word)}">◖))</button></div>${view!=='picture'?`<p class="definition">${escapeHTML(card.definition)}</p><div class="sentence">${escapeHTML(card.sentence)}</div>`:'<p class="definition">Look at the picture. Can you name it?<br>Tap the speaker for a clue.</p>'}<div class="card-bottom"><span>${card.source==='gemma'?'✦ Gemma lesson':card.source==='manual'?'Your word':'Sample lesson'}</span><button class="make-picture" ${imageJobs.has(card.id)?'disabled':''}>${imageJobs.has(card.id)?'Creating…':cardImageURL(card)?'Picture saved':'Create picture'}</button><button class="delete" aria-label="Delete ${escapeHTML(card.word)}">Remove</button></div></div>`;
-  el.querySelector('.make-picture').onclick=()=>createCardPicture(card);
+  el.innerHTML=`${view!=='word'?`<div class="picture" aria-label="${view==='picture'?'Vocabulary illustration':escapeHTML(card.word)+' illustration'}">${cardImageURL(card)?`<img class="card-illustration" src="${cardImageURL(card)}" alt="${view==='picture'?'Word picture clue':escapeHTML(card.word)+' illustration'}">`:`<span aria-hidden="true">${escapeHTML(card.emoji||'✦')}</span>`}<small>${cardImageURL(card)?escapeHTML(cardImageLabel(card)):card.emoji?'Emoji placeholder':'Image pending'}</small></div>`:''}<div class="card-body"><div class="word-line"><h3>${view==='picture'?'Mystery word':escapeHTML(card.word)}</h3><button class="speak" aria-label="Hear ${view==='picture'?'word':escapeHTML(card.word)}">◖))</button></div>${view!=='picture'?`<p class="definition">${escapeHTML(card.definition)}</p><div class="sentence">${escapeHTML(card.sentence)}</div>`:'<p class="definition">Look at the picture. Can you name it?<br>Tap the speaker for a clue.</p>'}<div class="card-bottom"><span>${card.source==='gemma'?'✦ Gemma lesson':card.source==='manual'?'Your word':'Sample lesson'}</span><button class="make-picture" ${imageJobs.has(card.id)?'disabled':''}>${imageJobs.has(card.id)?'Creating…':card.pendingImageUrl?'Review picture':cardImageURL(card)?'Picture approved':'Create picture'}</button><button class="delete" aria-label="Delete ${escapeHTML(card.word)}">Remove</button></div></div>`;
+  el.querySelector('.make-picture').onclick=()=>card.pendingImageUrl?openImageReview(card):cardImageURL(card)?toast('This picture is already approved.'):createCardPicture(card);
   const img=el.querySelector('.card-illustration');if(img)img.onerror=()=>markMissingPicture(card,img);
   el.querySelector('.speak').onclick=()=>speak(card.word);
   el.querySelector('.delete').onclick=()=>{state.cards=state.cards.filter(c=>c.id!==card.id);save();render();};
@@ -41,7 +43,7 @@ function render() {
 }
 let naturalSpeech = false, speechRequest = 0, speechController = null, playingAudio = null, audioURL = null;
 let deviceVoices = [], voicePreference = 'auto';
-try { voicePreference=localStorage.getItem('wordring-voice')||'auto';$('slowSpeech').checked=localStorage.getItem('wordring-slow')==='true'; } catch {}
+try { voicePreference=localStorage.getItem('wordring-voice')||'auto';$('speechSpeed').value=localStorage.getItem('wordring-slow')==='true'?'slow':'normal'; } catch {}
 function stopSpeech(){
  speechRequest++;
  if(speechController){speechController.abort();speechController=null;}
@@ -77,7 +79,7 @@ function speakOnDevice(text, request){
  const u=new SpeechSynthesisUtterance(text);
  const voice=deviceVoices.find(v=>v.voiceURI===$('voiceSelect').value)||deviceVoices[0];
  if(voice){u.voice=voice;u.lang=voice.lang;}else u.lang='en-US';
- u.rate=$('slowSpeech').checked?.8:.95;u.pitch=1;u.volume=1;
+ u.rate=($('speechSpeed').value==='slow')?.8:.95;u.pitch=1;u.volume=1;
  u.onstart=()=>{if(request===speechRequest)updateVoiceStatus('Reading…');};
  u.onend=()=>{if(request===speechRequest){$('readAloud').classList.remove('speaking');updateVoiceStatus();}};
  u.onerror=event=>{if(request===speechRequest&&event.error!=='interrupted'&&event.error!=='canceled'){updateVoiceStatus('Audio could not play. Try another reading voice.');$('readAloud').classList.remove('speaking');}};
@@ -89,7 +91,7 @@ async function speak(text){
  const controller=new AbortController();speechController=controller;$('readAloud').setAttribute('aria-busy','true');updateVoiceStatus('Getting your reading voice ready…');
  const timeout=setTimeout(()=>controller.abort(),35000);
  try{
-  const response=await fetch('/api/speech',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,slow:$('slowSpeech').checked}),signal:controller.signal});
+  const response=await fetch('/api/speech',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,slow:($('speechSpeed').value==='slow')}),signal:controller.signal});
   if(!response.ok)throw Error('Speech unavailable');
   const blob=await response.blob();if(request!==speechRequest)return;
   audioURL=URL.createObjectURL(blob);playingAudio=new Audio(audioURL);
@@ -101,7 +103,7 @@ async function speak(text){
  finally{clearTimeout(timeout);if(request===speechRequest){speechController=null;$('readAloud').removeAttribute('aria-busy');}}
 }
 $('voiceSelect').onchange=()=>{stopSpeech();voicePreference=$('voiceSelect').value;try{localStorage.setItem('wordring-voice',voicePreference);}catch{}updateVoiceStatus();};
-$('slowSpeech').onchange=()=>{stopSpeech();try{localStorage.setItem('wordring-slow',String($('slowSpeech').checked));}catch{}updateVoiceStatus();};
+$('speechSpeed').onchange=()=>{stopSpeech();try{localStorage.setItem('wordring-slow',String(($('speechSpeed').value==='slow')));}catch{}updateVoiceStatus();};
 if('speechSynthesis' in window)speechSynthesis.addEventListener('voiceschanged',refreshVoices);
 refreshVoices();
 
@@ -127,12 +129,12 @@ showReading();fetch('/api/status').then(r=>r.json()).then(s=>{gemmaConnected=s.g
 
 function setTab(name) {
  activeTab=name;
- for (const tab of ['reading','library','practice']) {
+ for (const tab of ['reading','library','practice','settings']) {
   $(tab).hidden=tab!==name;
   $(tab+'Nav').classList.toggle('active',tab===name);
   $(tab+'Nav').setAttribute('aria-current',tab===name?'page':'false');
  }
- document.querySelector('.welcome').hidden=name!=='library';
+ document.body.dataset.tab=name;
  stopSpeech();
 }
 function showReading(){readingFlipped=false;setTab('reading');render();renderReading();}
@@ -147,7 +149,6 @@ function renderReading(){
  $('nextWord').disabled=!card||readingIndex===cards.length-1;
  $('readingPosition').textContent=card?`${readingIndex+1} / ${cards.length}`:'0 / 0';
  $('readingProgress').max=cards.length||1;$('readingProgress').value=card?readingIndex+1:0;
- $('readingSource').textContent=card?(card.source==='sample'?'Sample word set':card.source==='gemma'?'Gemma word set':'Your word set'):'';
  updateImageControls();
  if(!card)return;
  $('readingWord').textContent=card.word;
@@ -166,13 +167,16 @@ function renderReading(){
 }
 function moveWord(direction){readingIndex+=direction;readingFlipped=false;stopSpeech();updateVoiceStatus();renderReading();}
 $('readingNav').onclick=showReading;
-$('readingCreate').onclick=()=>$('openCreate').click();
+$('readingManage').onclick=showLibrary;
+$('settingsNav').onclick=()=>{setTab('settings');updateVoiceStatus();updateImageControls();};
+$('managePictures').onclick=showLibrary;
+$('previewVoice').onclick=()=>speak('Let’s read together. One word at a time.');
 $('readingCard').onclick=()=>{readingFlipped=!readingFlipped;renderReading();};
 $('readAloud').onclick=()=>{const card=currentCards()[readingIndex];if(card)speak(card.word);};
 $('previousWord').onclick=()=>moveWord(-1);$('nextWord').onclick=()=>moveWord(1);
 $('back').onclick=showReading;
 window.addEventListener('keydown',event=>{
- if(activeTab!=='reading'||$('createDialog').open||/INPUT|TEXTAREA|SELECT|BUTTON/.test(document.activeElement.tagName)||event.ctrlKey||event.metaKey||event.altKey)return;
+ if(activeTab!=='reading'||$('createDialog').open||$('imageReviewDialog').open||/INPUT|TEXTAREA|SELECT|BUTTON/.test(document.activeElement.tagName)||event.ctrlKey||event.metaKey||event.altKey)return;
  if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();moveWord(event.key==='ArrowLeft'?-1:1);}
  if(event.code==='Space'&&currentCards().length){event.preventDefault();$('readingCard').click();}
 });
@@ -180,12 +184,10 @@ window.addEventListener('keydown',event=>{
 $('readSentence').onclick=()=>{const card=currentCards()[readingIndex];if(card?.sentence)speak(card.sentence);};
 
 function updateImageControls(){
- const card=currentCards()[readingIndex];
- const busy=card&&imageJobs.has(card.id);
- $('createPicture').disabled=!card||busy||!!cardImageURL(card);
- $('createPicture').textContent=busy?'Creating your picture…':card&&cardImageURL(card)?'✓ Picture saved':'✦ Create picture';
- $('imageStatus').textContent=busy?'Your word is becoming a picture. This may take a minute.':card&&cardImageURL(card)?`${cardImageLabel(card)} illustration · Flip the card to see it.`:imageGeneration?'Create a picture clue for this word.':`Connect ${imageLabel} to create pictures.`;
+ const waiting=state.cards.filter(c=>c.pendingImageUrl).length;
+ $('imageStatus').textContent=(imageGeneration?`${imageLabel} connected`:`${imageLabel} is not configured`)+(waiting?` · ${waiting} picture${waiting===1?'':'s'} waiting for review`:'');
 }
+
 function markMissingPicture(card,img){
  if(!card.imageUrl||brokenImages.has(card.imageUrl))return;
  brokenImages.add(card.imageUrl);img.hidden=true;
@@ -193,6 +195,7 @@ function markMissingPicture(card,img){
 }
 async function createCardPicture(card){
  if(imageJobs.has(card.id)||cardImageURL(card))return;
+ if(card.pendingImageUrl)return openImageReview(card);
  if(!imageGeneration)return toast('Configure the image provider in .env and restart WordRing to create pictures.');
  const controller=new AbortController();imageJobs.set(card.id,controller);
  render();if(activeTab==='reading')updateImageControls();
@@ -201,8 +204,32 @@ async function createCardPicture(card){
   const response=await fetch('/api/image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({word:card.word,imagePrompt:card.imagePrompt||''}),signal:controller.signal});
   const result=await response.json();if(!response.ok)throw Error(result.error||'Could not create a picture.');
   if(!/^\/generated\/[a-f0-9]{64}\.(png|jpg|webp)$/.test(result.imageUrl))throw Error('An invalid picture was returned.');
-  if(state.cards.some(c=>c.id===card.id)){card.imageUrl=result.imageUrl;card.imageModel=result.model;brokenImages.delete(result.imageUrl);save();toast('Your picture is ready. Flip the word card to see it.');}
+  if(state.cards.some(c=>c.id===card.id)){WordRingImages.stage(card,result);brokenImages.delete(result.imageUrl);save();toast('Your picture is ready for review.');if(activeTab==='library')openImageReview(card);}
  }catch(error){toast(error.name==='TimeoutError'||error.name==='AbortError'?'Picture generation took too long. Try again shortly.':error.message);}
  finally{clearTimeout(timeout);imageJobs.delete(card.id);render();if(activeTab==='reading')renderReading();}
 }
-$('createPicture').onclick=()=>{const card=currentCards()[readingIndex];if(card)createCardPicture(card);};
+
+
+function refreshAfterReview(){render();updateImageControls();if(activeTab==='reading')renderReading();}
+function openImageReview(card){
+ if(!WordRingImages.validURL(card.pendingImageUrl))return;
+ reviewingCardId=card.id;reviewLoaded=false;$('approvePicture').disabled=true;$('reviewError').textContent='';
+ $('reviewTitle').textContent=`Picture for “${card.word}”`;
+ $('reviewDescription').textContent='Check that this picture clearly shows the word before adding it to the reading card.';
+ const image=$('reviewPicture');image.alt=`Proposed illustration for ${card.word}`;
+ const expected=card.pendingImageUrl;
+ image.onload=()=>{if(reviewingCardId===card.id&&card.pendingImageUrl===expected){reviewLoaded=true;$('approvePicture').disabled=false;}};
+ image.onerror=()=>{reviewLoaded=false;$('approvePicture').disabled=true;$('reviewError').textContent='This picture could not load. Choose Keep word only, then create it again.';};
+ image.src=expected;
+ if(!$('imageReviewDialog').open)$('imageReviewDialog').showModal();
+}
+$('closeReview').onclick=()=>$('imageReviewDialog').close();
+$('imageReviewDialog').addEventListener('close',()=>{reviewingCardId=null;reviewLoaded=false;});
+$('approvePicture').onclick=()=>{
+ const card=state.cards.find(c=>c.id===reviewingCardId);if(!card||!reviewLoaded)return;
+ WordRingImages.approve(card);save();$('imageReviewDialog').close();refreshAfterReview();toast('Picture approved for reading.');
+};
+$('discardPicture').onclick=()=>{
+ const card=state.cards.find(c=>c.id===reviewingCardId);if(card){WordRingImages.discard(card);save();}
+ $('imageReviewDialog').close();refreshAfterReview();toast('The AI picture was not added to the reading card.');
+};

@@ -20,7 +20,8 @@ On Windows, use `py -3 server.py` if `python3` is unavailable. Open **http://127
 
 - Default **Read words** tab with one word at a time, card flipping, previous/next controls, and position indicator.
 - Cloudflare FLUX.1 Schnell illustration generation on each card (optional paid Nano Banana 2 provider), with a persistent local image cache.
-- Whole-word and sentence narration, voice selection, and a slower reading option.
+- Whole-word and sentence narration. Settings holds voice selection, normal/slower speed, and a voice preview.
+- AI image previews with explicit approval before pictures appear in either card view.
 - ElevenLabs natural speech, with a browser-voice fallback and a server-memory cache of up to 50 clips.
 - Manual word entry, folders, and word/picture/combined library views.
 - Sample quizzes with hints and retry feedback.
@@ -60,6 +61,7 @@ Gemma generates grade-level vocabulary, definitions, example sentences, image pr
 public/index.html       App layout and dialogs
 public/style.css        Responsive styles
 public/app.js           Cards, reading flow, quizzes, local saving, audio playback
+public/image-review.js  Image approval state and migration helpers
 server.py               Local HTTP server and server-side AI routes
 images.py               Cloudflare/Google image adapters and persistent cache
 .env.example            Configuration template without secrets
@@ -76,6 +78,8 @@ Run from the project root:
 ```sh
 python3 -m unittest discover -s tests
 node --check public/app.js
+node --check public/image-review.js
+node --test tests/test_image_review.cjs
 ```
 
 Python tests make no real provider calls and require no keys. GitHub Actions runs both checks for pushes and pull requests.
@@ -99,7 +103,7 @@ Set `IMAGE_PROVIDER=google` explicitly before using this paid option.
 
 1. Create a Gemini API key in [Google AI Studio](https://aistudio.google.com/apikey) with access to image generation and any required billing/quota.
 2. Put `GEMINI_API_KEY=your-key` in your local `.env` and restart WordRing.
-3. Click **Create picture** beneath the reading card or on a library card. Flip the reading card to see the illustration.
+3. In My word garden, click **Create picture**, inspect the preview, and click **Approve picture**. Then flip the reading card to see it.
 
 The server calls `gemini-3.1-flash-image` through Google's `generateContent` API, requesting a square 1K illustration with a shared storybook style. Only the word and illustration prompt are sent. Generation may incur charges. It happens only on an explicit button click; navigating or flipping cards does not trigger paid calls.
 
@@ -114,8 +118,14 @@ WordRing defaults to `IMAGE_PROVIDER=cloudflare` and uses FLUX.1 Schnell. Keep t
 1. In the Cloudflare dashboard, open **Workers AI → Use REST API**.
 2. Create the Workers AI token using the provided template (Workers AI Read and Edit for the selected account).
 3. Copy the account ID and token into `.env` as `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`.
-4. Leave `IMAGE_PROVIDER=cloudflare`, restart the server, refresh WordRing, and select Create picture.
+4. Leave `IMAGE_PROVIDER=cloudflare`, restart the server, refresh WordRing, and select Create picture in My word garden. Review the preview and approve it before it appears on a reading card.
 
 Codex MCP authorization and WordRing API credentials are separate. Do not copy Codex OAuth tokens into the app. Keep the app token in ignored `.env`. Only the word and illustration prompt are sent to Cloudflare. Generated files reuse the existing local cache; image model metadata is saved with the card. A Cloudflare failure does not trigger any Google request.
 
 The Cloudflare adapter has mocked coverage, and live FLUX generation has been verified with the owner’s local credentials. Partner clones still require their own authorized account ID and API token.
+
+## Version 3: simple reading and image review
+
+Reading keeps the large word, flip clue, audio buttons, and navigation. Voice, speed, previews, and service details live in Settings. Picture generation and approval live in My word garden.
+
+Generated pictures are saved as pending and shown only in the review dialog. **Approve picture** enables a picture for both library and reading cards; **Keep word only** discards the pending AI picture (sample emoji clues may remain). Closing the review leaves it waiting. Approval is saved in this browser. Older generated pictures without an approval flag move to the review queue once, preserving their files and keeping the reading view free of unreviewed AI artwork. This is a review convenience, not a parental authentication gate.

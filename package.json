@@ -1,1 +1,8 @@
-{"name":"wordring","private":true,"scripts":{"dev":"python3 server.py","check":"node --check public/app.js"}}
+{
+  "name": "wordring",
+  "private": true,
+  "scripts": {
+    "dev": "python3 server.py",
+    "check": "node --check public/app.js && node --check public/image-review.js && node --test tests/test_image_review.cjs"
+  }
+}
